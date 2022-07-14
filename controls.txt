@@ -1,0 +1,16 @@
+All controls are configurable
+the actual CHIP-8 had 16 hex-keys
+default 1, 2, 3, 4
+	Q, W, E, R
+	A, S, D, F
+	Z, X, C, V
+
+Special controls
+	rapid fire - every update, held buttons are "pressed" again
+	quick save, quick load
+	mute
+	pause/resume
+	rewind, slow motion, fast forward - configurable speeds
+	step backward, step forward - exactly one instruction
+	screenshot, record video
+	debug mode
