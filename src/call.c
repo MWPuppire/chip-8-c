@@ -2,9 +2,10 @@
 #include <call.h>
 
 void callRoutine(struct emuState *state, UWord pos) {
-	state->callStack[state->callStackPos] = state->registers.pc;
-	if (state->callStackPos == 64)
+	if (state->callStackPos < 64) {
+		state->callStack[state->callStackPos] = state->registers.pc;
 		state->callStackPos++;
+	}
 	state->registers.pc = pos;
 }
 

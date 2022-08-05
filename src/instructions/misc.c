@@ -1,5 +1,3 @@
-#include <stdlib.h>
-
 #include <shared.h>
 #include <memory.h>
 #include <registers.h>
@@ -17,6 +15,16 @@ int bcd(struct emuState *state, UWord word) {
 int randRegister(struct emuState *state, UWord word) {
 	UByte reg = (UByte) ((word & 0xF00) >> 8);
 	UByte val = word & 0xFF;
-	writeRegister(state, reg, rand() & val);
+	// Xorshift LFSR
+	UWord lfsr = state->randomState;
+	lfsr ^= lfsr >>  7;
+	lfsr ^= lfsr <<  9;
+	lfsr ^= lfsr >> 13;
+	state->randomState = lfsr;
+	writeRegister(state, reg, lfsr & val);
+	return 0;
+}
+
+int nop(struct emuState *UNUSED(state), UWord UNUSED(word)) {
 	return 0;
 }

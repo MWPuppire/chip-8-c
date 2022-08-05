@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,39 +24,48 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 16;
+const int COMMAND_COUNT = 23;
 enum command {
 	NO_COMMAND,
-	BRK, DUMP_DISPLAY, DUMP_MEMORY, HELP, LOAD_MEMORY, LOAD_ROM,
-	LOG_INSTRUCTIONS, READ, REBOOT, REGS, RESUME, SETREG, STEP, QUIT, WRITE
+	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
+	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, LOG_INSTRUCTIONS, NEXT, READ,
+	REBOOT, REGS, RESUME, SETREG, STEP, TIMERS, QUIT, WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
-	"MISSING", "brk", "dump_display", "dump_memory", "help", "load_memory",
-	"load_rom", "log_instructions", "read", "reboot", "regs", "resume",
-	"setreg", "step", "quit", "write"
+	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
+	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
+	"log_instructions", "next", "read", "reboot", "regs", "resume",
+	"setreg", "step", "timers", "quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
-	"brk [x] - halt when PC reaches <x>",
+	"backtrace - display the current call stack",
+	"brk [x] - halt when PC reaches <x>, or remove the breakpoint",
+	"cycles - display the number of CPU cycles since the last usage",
+	"disassemble [x] - disassemble the instruction at <x> or current",
 	"dump_display <file> - write the display to JPEG <file>",
 	"dump_memory <file> - write memory to binary <file>",
-	"help - display this help text",
+	"finish - run until teh current function returns",
+	"help [cmd] - display this help text or the text for <cmd>",
+	"listbrk - list all breakpoints",
 	"load_memory <file> - load memory from binary <file>",
 	"load_rom <file> - load a new ROM <file>, clearing memory",
 	"log_instructions [yes|no] - set whether to log executed instructions",
+	"next - run the next instruction without calling a function",
 	"read <x> - read byte at memory <x> and display it",
 	"reboot - shut down and reboot CPU, clearing state",
 	"regs - dump all registers",
 	"resume - start or continue execution",
 	"setreg <x> <y> - set register <x> to <y>",
 	"step - execute only the next instruction",
+	"timers - display the current timers status",
 	"quit - terminate the program",
 	"write <x> <y> - write byte <y> to memory <x>",
 };
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
-	-1, 1, 2, 2, 1, 2, 2, 1,
-	2, 1, 1, 1, 3, 1, 1, 3
+	-1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2,
+	1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 3
 };
 
 enum execState { PAUSED = 0, RUNNING = 1 };
@@ -66,6 +76,7 @@ struct {
 	bool logging;
 	bool hasRom;
 	int brk;
+	int cycles;
 } state;
 
 char *readfile(const char *name, size_t *size) {
@@ -121,7 +132,7 @@ int readROM(struct emuState *state, char *file) {
 }
 
 int dumpDisplay(struct emuState *state, const char *file) {
-	const static int NUM_COMPONENTS = 3;
+	const static int NUM_COMPONENTS = 4;
 	static unsigned char data[NUM_COMPONENTS * SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
 	for (int x = 0; x < SCREEN_WIDTH; x++) {
 		for (int y = 0; y < SCREEN_HEIGHT; y++) {
@@ -129,14 +140,14 @@ int dumpDisplay(struct emuState *state, const char *file) {
 			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 0] = val;
 			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 1] = val;
 			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 2] = val;
+			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 3] = 0xFF;
 		}
 	}
 	return !tje_encode_to_file(file, SCREEN_WIDTH, SCREEN_HEIGHT, NUM_COMPONENTS, data);
 }
 
 void sigIntHandler(int signal) {
-	if (signal != SIGINT)
-		return;
+	assert(signal == SIGINT);
 	if (state.running) {
 		state.running = 0;
 		printf("(To exit, press CTRL+C again or run `quit`)\n");
@@ -212,40 +223,6 @@ enum command matchCommand(const char *cmd) {
 			return id;
 	}
 	return NO_COMMAND;
-
-	if (strncmpcase(cmd, "brk", len) == 0) {
-		return BRK;
-	} else if (strncmpcase(cmd, "dump_display", len) == 0) {
-		return DUMP_DISPLAY;
-	} else if (strncmpcase(cmd, "dump_memory", len) == 0) {
-		return DUMP_MEMORY;
-	} else if (strncmpcase(cmd, "help", len) == 0) {
-		return HELP;
-	} else if (strncmpcase(cmd, "load_memory", len) == 0) {
-		return LOAD_MEMORY;
-	} else if (strncmpcase(cmd, "load_rom", len) == 0) {
-		return LOAD_ROM;
-	} else if (strncmpcase(cmd, "log_instructions", len) == 0) {
-		return LOG_INSTRUCTIONS;
-	} else if (strncmpcase(cmd, "read", len) == 0) {
-		return READ;
-	} else if (strncmpcase(cmd, "reboot", len) == 0) {
-		return REBOOT;
-	} else if (strncmpcase(cmd, "regs", len) == 0) {
-		return REGS;
-	} else if (strncmpcase(cmd, "resume", len) == 0) {
-		return RESUME;
-	} else if (strncmpcase(cmd, "setreg", len) == 0) {
-		return SETREG;
-	} else if (strncmpcase(cmd, "step", len) == 0) {
-		return STEP;
-	} else if (strncmpcase(cmd, "quit", len) == 0) {
-		return QUIT;
-	} else if (strncmpcase(cmd, "write", len) == 0) {
-		return WRITE;
-	} else {
-		return NO_COMMAND;
-	}
 }
 
 int parseByte(const char *str, UByte *out) {
@@ -296,10 +273,15 @@ void executeCommand(const char *cmd) {
 	struct emuState *emu = state.state;
 
 	switch (commandId) {
-	case NO_COMMAND:
+	case NO_COMMAND: {
 		printf("Unknown command `%s'.\n", base);
 		printf("For help, use `help'.\n");
 		break;
+	}
+	case BACKTRACE: {
+		printf("Not implemented\n");
+		break;
+	}
 	case BRK: {
 		if (argc < 2) {
 			state.brk = -1;
@@ -310,6 +292,21 @@ void executeCommand(const char *cmd) {
 			break;
 		}
 		state.brk = loc;
+		break;
+	}
+	case CYCLES: {
+		printf("%d cycles since last call.\n", state.cycles);
+		state.cycles = 0;
+		break;
+	}
+	case DISASSEMBLE: {
+		UWord pos = emu->registers.pc;
+		if (argc > 1) {
+			if (parseWord(args[1], &pos) != 0) {
+				break;
+			}
+		}
+		printf("%s\n", disassemble(emu, pos));
 		break;
 	}
 	case DUMP_DISPLAY: {
@@ -324,10 +321,33 @@ void executeCommand(const char *cmd) {
 			printf("Failed to write to file.\n");
 		break;
 	}
-	case HELP:
-		for (int i = COMMAND_START; i < COMMAND_COUNT; i++)
-			printf("%s\n", COMMAND_HELP[i]);
+	case FINISH: {
+		printf("Not implemented\n");
 		break;
+	}
+	case HELP: {
+		if (argc > 1) {
+			enum command helpCmd = matchCommand(args[1]);
+			if (helpCmd == NO_COMMAND) {
+				printf("Unknown command `%s'.\n", base);
+				printf("For help, use `help'.\n");
+			} else {
+				printf("%s\n", COMMAND_HELP[(int) helpCmd]);
+			}
+		} else {
+			for (int i = COMMAND_START; i < COMMAND_COUNT; i++)
+				printf("%s\n", COMMAND_HELP[i]);
+		}
+		break;
+	}
+	case LISTBRK: {
+		if (state.brk == -1) {
+			printf("No breakpoints\n");
+		} else {
+			printf("0: %x\n", state.brk);
+		}
+		break;
+	}
 	case LOAD_MEMORY: {
 		size_t size;
 		const char *buf = readfile(args[1], &size);
@@ -338,16 +358,16 @@ void executeCommand(const char *cmd) {
 		memcpy(emu->memory, buf, 0x1000);
 		break;
 	}
-	case LOAD_ROM:
+	case LOAD_ROM: {
 		if (readROM(emu, args[1]))
 			printf("Error loading ROM.\n");
 		else
 			state.hasRom = true;
 		break;
-	case LOG_INSTRUCTIONS:
+	}
+	case LOG_INSTRUCTIONS: {
 		if (argc > 1) {
 			const char *arg = args[1];
-			size_t arglen = strlen(arg);
 			if (strncmpcase(arg, "yes", 3) == 0) {
 				state.logging = true;
 			} else if (strncmpcase(arg, "no", 2) == 0) {
@@ -359,46 +379,62 @@ void executeCommand(const char *cmd) {
 			state.logging = !state.logging;
 		}
 		break;
-	case READ:
+	}
+	case NEXT: {
+		printf("Not implemented\n");
+		break;
+	}
+	case READ: {
 		UWord loc;
 		if (parseWord(args[1], &loc) != 0) {
 			break;
 		}
 		printf("0x%02x\n", readMemoryByte(emu, loc));
 		break;
-	case REBOOT:
+	}
+	case REBOOT: {
 		cpuBoot(emu);
 		state.hasRom = false;
 		break;
-	case REGS:
+	}
+	case REGS: {
 		for (int i = 0; i < 8; i++)
 			printf("v%x: %02x\tv%x: %02x\n", i, readRegister(emu, i),
 				i + 8, readRegister(emu, i + 8));
 		printf("Program Counter: %04x\n", emu->registers.pc);
 		printf("Address: %04x\n", emu->registers.I);
-		printf("Delay timer: %02x\n", emu->delayTimer);
-		printf("Sound timer: %02x\n", emu->soundTimer);
 		break;
-	case RESUME:
+	}
+	case RESUME: {
 		if (!state.hasRom) {
 			printf("No ROM loaded.\n");
 			break;
 		}
 		state.running = RUNNING;
 		break;
-	case SETREG:
+	}
+	case SETREG: {
+		printf("Not implemented\n");
 		break;
-	case STEP:
+	}
+	case STEP: {
 		if (!state.hasRom) {
 			printf("No ROM loaded.\n");
 			break;
 		}
-		cpuStep(emu);
+		state.cycles += cpuStep(emu);
 		break;
-	case QUIT:
+	}
+	case TIMERS: {
+		printf("Delay timer: %02x\n", emu->delayTimer);
+		printf("Sound timer: %02x\n", emu->soundTimer);
+		break;
+	}
+	case QUIT: {
 		exit(1);
 		break;
-	case WRITE:
+	}
+	case WRITE: {
 		UWord loc;
 		if (parseWord(args[1], &loc) != 0) {
 			break;
@@ -409,6 +445,7 @@ void executeCommand(const char *cmd) {
 		}
 		writeMemoryByte(emu, loc, byte);
 		break;
+	}
 	}
 
 command_cleanup:
@@ -428,13 +465,13 @@ int main(int argc, char *argv[]) {
 	if (argc > 0) {
 		int fail = readROM(emu, argv[0]);
 		if (fail)
-			printf("Error loading ROM.\n");
+			fprintf(stderr, "Error loading ROM.\n");
 		else
 			state.hasRom = true;
 	}
 
 	if (signal(SIGINT, sigIntHandler) == SIG_ERR) {
-		printf("Error setting signal handler.\n");
+		fprintf(stderr, "Error setting signal handler.\n");
 		return 1;
 	}
 
@@ -445,9 +482,12 @@ int main(int argc, char *argv[]) {
 	while (true) {
 		if (state.running) {
 			long double dt = deltatime(&lasttime);
+			int startCycles = emu->cycleDiff + dt * CLOCK_SPEED;
 			int fail = emulateUntil(emu, dt, state.brk);
 			if (fail)
 				state.running = PAUSED;
+			int endCycles = emu->cycleDiff;
+			state.cycles += startCycles - endCycles;
 		} else {
 			char *buffer = readline("> ");
 			if (!buffer)

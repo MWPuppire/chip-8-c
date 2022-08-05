@@ -10,8 +10,8 @@ inline static long double deltatime(long double *lasttime) {
 	timespec_get(&ts, TIME_UTC);
 	long double time = (long double) ts.tv_sec
 		+ (long double) ts.tv_nsec / 1e9;
-	long double diff = time - *lasttime;
-	*lasttime = time;
+	long double diff = time - (lasttime == 0 ? 0.0 : *lasttime);
+	lasttime != 0 && (*lasttime = time);
 	return diff;
 }
 
@@ -23,8 +23,8 @@ inline static long double deltatime(long double *lasttime) {
 inline static long double deltatime(long double *lasttime) {
 	clock_t val = clock();
 	long double time = (long double) val / CLOCKS_PER_SEC;
-	long double diff = time - *lasttime;
-	*lasttime = time;
+	long double diff = time - (lasttime == 0 ? 0.0 : *lasttime);
+	lasttime != 0 && (*lasttime = time);
 	return diff;
 }
 

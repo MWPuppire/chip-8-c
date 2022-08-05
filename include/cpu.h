@@ -2,6 +2,7 @@
 
 #include "shared.h"
 
+void seedRandom(struct emuState *state, UWord seed);
 void cpuBoot(struct emuState *state);
 int cpuStep(struct emuState *state);
 int emulate(struct emuState *state, long double dt);

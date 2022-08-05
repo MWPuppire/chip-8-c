@@ -51,6 +51,7 @@ INSTRUCTION(jumpOffset);
 // misc.c
 INSTRUCTION(bcd);
 INSTRUCTION(randRegister);
+INSTRUCTION(nop);
 
 // timers.c
 INSTRUCTION(getDelay);

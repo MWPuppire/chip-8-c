@@ -10,3 +10,4 @@ struct instruction {
 
 void instructionLookup(struct instruction *inst, UWord word);
 void unknownOpcode(struct emuState *state, struct instruction inst);
+const char *disassemble(struct emuState *state, UWord pos);

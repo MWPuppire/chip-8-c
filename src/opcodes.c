@@ -9,7 +9,11 @@
 void instructionLookup(struct instruction *inst, UWord word) {
 	switch (word & 0xF000) {
 	case 0x0000:
-		if (word == 0x00E0) {
+		if (word == 0x0000) {
+			inst->disassembly = "(void) 0;";
+			inst->execute = nop;
+			inst->cycles = 1;
+		} else if (word == 0x00E0) {
 			inst->disassembly = "display_clear();";
 			inst->execute = displayClear;
 			inst->cycles = 1;
@@ -32,17 +36,17 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		inst->cycles = 1;
 		break;
 	case 0x3000:
-		inst->disassembly = "if (Vx == NN)";
+		inst->disassembly = "if (Vx == NN) goto next;";
 		inst->execute = ifEquals;
 		inst->cycles = 1;
 		break;
 	case 0x4000:
-		inst->disassembly = "if (Vx != NN)";
+		inst->disassembly = "if (Vx != NN) goto next;";
 		inst->execute = ifNotEquals;
 		inst->cycles = 1;
 		break;
 	case 0x5000:
-		inst->disassembly = "if (Vx == Vy)";
+		inst->disassembly = "if (Vx == Vy) goto next;";
 		inst->execute = ifEqualsReg;
 		inst->cycles = 1;
 		break;
@@ -106,7 +110,7 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		}
 		break;
 	case 0x9000:
-		inst->disassembly = "if (Vx != Vy)";
+		inst->disassembly = "if (Vx != Vy) goto next;";
 		inst->execute = ifNotEqualsReg;
 		inst->cycles = 1;
 		break;
@@ -116,8 +120,8 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		inst->cycles = 1;
 		break;
 	case 0xB000:
-		inst->disassembly = "PC = Vx + NNN;";
-		inst->execute = jumpOffset;
+		inst->disassembly = "PC = V0 + NNN;";
+		inst->execute = jumpV0;
 		inst->cycles = 1;
 		break;
 	case 0xC000:
@@ -132,11 +136,11 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		break;
 	case 0xE000:
 		if ((word & 0xFF) == 0x9E) {
-			inst->disassembly = "if (key() == Vx)";
+			inst->disassembly = "if (key() == Vx) goto next;";
 			inst->execute = keyEquals;
 			inst->cycles = 1;
 		} else if ((word & 0xFF) == 0xA1) {
-			inst->disassembly = "if (key() != Vx)";
+			inst->disassembly = "if (key() != Vx) goto next;";
 			inst->execute = keyNotEquals;
 			inst->cycles = 1;
 		}
@@ -198,4 +202,11 @@ void unknownOpcode(struct emuState *state, struct instruction inst) {
 	fprintf(stderr, "Unknown or unimplemented opcode at 0x%04X: %04X\n",
 		state->registers.pc, badInst);
 	fprintf(stderr, "%s\n", inst.disassembly);
+}
+
+const char *disassemble(struct emuState *state, UWord pos) {
+	UWord word = readMemoryWord(state, pos);
+	struct instruction inst;
+	instructionLookup(&inst, word);
+	return inst.disassembly;
 }

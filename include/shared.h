@@ -92,5 +92,6 @@ struct emuState {
 	UByte soundTimer;
 	UByte input[16];
 	UWord callStack[64];
+	UWord randomState;
 	int callStackPos;
 };

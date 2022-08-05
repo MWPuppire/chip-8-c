@@ -6,14 +6,21 @@
 #include <screen.h>
 #include <cpu.h>
 #include <sound.h>
+#include <delta.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+
+void seedRandom(struct emuState *state, UWord seed) {
+	state->randomState = seed;
+}
 
 void cpuBoot(struct emuState *state) {
 	clearMemory(state);
 	clearScreen(state);
 	resetRegisters(state);
+	long double time = deltatime(NULL);
+	seedRandom(state, (UWord) time);
 }
 
 int cpuStep(struct emuState *state) {
