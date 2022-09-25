@@ -24,18 +24,18 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 23;
+const int COMMAND_COUNT = 24;
 enum command {
 	NO_COMMAND,
 	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
 	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, LOG_INSTRUCTIONS, NEXT, READ,
-	REBOOT, REGS, RESUME, SETREG, STEP, TIMERS, QUIT, WRITE
+	REBOOT, REGS, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT, WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
 	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
 	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
 	"log_instructions", "next", "read", "reboot", "regs", "resume",
-	"setreg", "step", "timers", "quit", "write"
+	"setreg", "step", "timers", "toggle_key", "quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
@@ -45,7 +45,7 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"disassemble [x] - disassemble the instruction at <x> or current",
 	"dump_display <file> - write the display to JPEG <file>",
 	"dump_memory <file> - write memory to binary <file>",
-	"finish - run until teh current function returns",
+	"finish - run until the current function returns",
 	"help [cmd] - display this help text or the text for <cmd>",
 	"listbrk - list all breakpoints",
 	"load_memory <file> - load memory from binary <file>",
@@ -59,13 +59,14 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"setreg <x> <y> - set register <x> to <y>",
 	"step - execute only the next instruction",
 	"timers - display the current timers status",
+	"toggle_key <key> - toggle holding a key down",
 	"quit - terminate the program",
 	"write <x> <y> - write byte <y> to memory <x>",
 };
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
 	-1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2,
-	1, 1, 2, 1, 1, 1, 3, 1, 1, 1, 3
+	1, 1, 2, 1, 1, 1, 3, 1, 1, 2, 1, 3
 };
 
 enum execState { PAUSED = 0, RUNNING = 1 };
@@ -430,6 +431,21 @@ void executeCommand(const char *cmd) {
 		printf("Sound timer: %02x\n", emu->soundTimer);
 		break;
 	}
+	case TOGGLE_KEY: {
+		UByte key;
+		if (parseByte(args[1], &key) != 0) {
+			break;
+		}
+		if (key > 16) {
+			break;
+		}
+		if (isKeyDown(emu, (int) key)) {
+			releaseKey(emu, (int) key);
+		} else {
+			pressKey(emu, (int) key);
+		}
+		break;
+	}
 	case QUIT: {
 		exit(1);
 		break;
@@ -483,11 +499,21 @@ int main(int argc, char *argv[]) {
 		if (state.running) {
 			long double dt = deltatime(&lasttime);
 			int startCycles = emu->cycleDiff + dt * CLOCK_SPEED;
-			int fail = emulateUntil(emu, dt, state.brk);
-			if (fail)
+			cpu_status_t status = emulateUntil(emu, dt, state.brk);
+			if (status != CPU_OK) {
 				state.running = PAUSED;
+				if (status == CPU_AWAITING_KEY) {
+					printf("CHIP-8 awaiting key press\n");
+				} else if (status == CPU_BREAK) {
+					printf("Breakpoint reached; pausing\n");
+				}
+				continue;
+			}
 			int endCycles = emu->cycleDiff;
 			state.cycles += startCycles - endCycles;
+			if (shouldBeep(emu)) {
+				printf("Beep\n");
+			}
 		} else {
 			char *buffer = readline("> ");
 			if (!buffer)

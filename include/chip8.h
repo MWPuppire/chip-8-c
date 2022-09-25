@@ -10,4 +10,4 @@
 #include "registers.h"
 #include "rom.h"
 #include "screen.h"
-#include "sound.h"
+#include "input.h"

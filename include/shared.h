@@ -88,4 +88,5 @@ struct emuState {
 	UWord callStack[STACK_SIZE];
 	UWord randomState;
 	int callStackPos;
+	int awaitingKey;
 };

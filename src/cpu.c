@@ -5,7 +5,6 @@
 #include <registers.h>
 #include <screen.h>
 #include <cpu.h>
-#include <sound.h>
 #include <delta.h>
 #include <input.h>
 
@@ -23,6 +22,7 @@ void cpuBoot(struct emuState *state) {
 	resetRegisters(state);
 	long double time = deltatime(NULL);
 	seedRandom(state, (UWord) time);
+	state->awaitingKey = -1;
 }
 
 int cpuStep(struct emuState *state) {
@@ -39,7 +39,10 @@ int cpuStep(struct emuState *state) {
 	return cycles + extraCycles;
 }
 
-int emulate(struct emuState *state, long double dt) {
+cpu_status_t emulate(struct emuState *state, long double dt) {
+	if (state->awaitingKey != -1) {
+		return CPU_AWAITING_KEY;
+	}
 	state->cycleDiff += dt * CLOCK_SPEED;
 	long double timerDiff = dt * TIMER_SPEED;
 	if (state->delayTimer > 0) {
@@ -48,7 +51,6 @@ int emulate(struct emuState *state, long double dt) {
 		state->delayTimer -= diff;
 	}
 	if (state->soundTimer > 0) {
-		emitBeep(state);
 		UByte diff = timerDiff > state->delayTimer
 			? state->delayTimer : timerDiff;
 		state->soundTimer -= diff;
@@ -57,13 +59,16 @@ int emulate(struct emuState *state, long double dt) {
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);
 		if (cyclesTaken < 0)
-			return 1;
+			return CPU_UNKNOWN_OP;
 		state->cycleDiff -= cyclesTaken;
 	}
-	return 0;
+	return CPU_OK;
 }
 
-int emulateUntil(struct emuState *state, long double dt, int breakpoint) {
+cpu_status_t emulateUntil(struct emuState *state, long double dt, int breakpoint) {
+	if (state->awaitingKey != -1) {
+		return CPU_AWAITING_KEY;
+	}
 	state->cycleDiff += dt * CLOCK_SPEED;
 	long double timerDiff = dt * TIMER_SPEED;
 	if (state->delayTimer > 0) {
@@ -72,19 +77,22 @@ int emulateUntil(struct emuState *state, long double dt, int breakpoint) {
 		state->delayTimer -= diff;
 	}
 	if (state->soundTimer > 0) {
-		emitBeep(state);
-		UByte diff = timerDiff > state->delayTimer
-			? state->delayTimer : timerDiff;
+		UByte diff = timerDiff > state->soundTimer
+			? state->soundTimer : timerDiff;
 		state->soundTimer -= diff;
 	}
 
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);
 		if (cyclesTaken < 0)
-			return 1;
+			return CPU_UNKNOWN_OP;
 		state->cycleDiff -= cyclesTaken;
 		if (state->registers.pc == breakpoint)
-			return 1;
+			return CPU_BREAK;
 	}
-	return 0;
+	return CPU_OK;
+}
+
+bool shouldBeep(struct emuState *state) {
+	return state->soundTimer > 0;
 }
