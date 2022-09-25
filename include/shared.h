@@ -59,7 +59,7 @@ typedef uint_least8_t UByte;
 #endif
 
 struct emuState {
-	long double cycleDiff;
+	double cycleDiff;
 	UByte memory[ADDRESSABLE_MEM];
 	UByte screen[SCREEN_MEM];
 	struct {

@@ -10,7 +10,7 @@ void clearInput(struct emuState *state) {
 
 void pressKey(struct emuState *state, int key) {
 	state->input[key] = true;
-	if (state->awaitingKey) {
+	if (state->awaitingKey != -1) {
 		writeRegister(state, (UByte) state->awaitingKey, (UByte) key);
 		state->awaitingKey = -1;
 	}

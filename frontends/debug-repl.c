@@ -133,18 +133,18 @@ int readROM(struct emuState *state, char *file) {
 }
 
 int dumpDisplay(struct emuState *state, const char *file) {
-	const static int NUM_COMPONENTS = 4;
-	static unsigned char data[NUM_COMPONENTS * SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
+	static unsigned char data[4 * SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
 	for (int x = 0; x < SCREEN_WIDTH; x++) {
 		for (int y = 0; y < SCREEN_HEIGHT; y++) {
-			unsigned char val = readFromScreen(state, x, y) ? 0xFF : 0x00;
-			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 0] = val;
-			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 1] = val;
-			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 2] = val;
-			data[(x + y * SCREEN_WIDTH) * NUM_COMPONENTS + 3] = 0xFF;
+			UByte pixelSet = readFromScreen(state, x, y);
+			unsigned char color = pixelSet ? 0xFF : 0x00;
+			data[(x + y * SCREEN_WIDTH) * 4 + 0] = color;
+			data[(x + y * SCREEN_WIDTH) * 4 + 1] = color;
+			data[(x + y * SCREEN_WIDTH) * 4 + 2] = color;
+			data[(x + y * SCREEN_WIDTH) * 4 + 3] = 0xFF;
 		}
 	}
-	return !tje_encode_to_file(file, SCREEN_WIDTH, SCREEN_HEIGHT, NUM_COMPONENTS, data);
+	return !tje_encode_to_file(file, SCREEN_WIDTH, SCREEN_HEIGHT, 4, data);
 }
 
 void sigIntHandler(int signal) {
@@ -474,6 +474,10 @@ int main(int argc, char *argv[]) {
 	argc--; argv++;
 
 	struct emuState *emu = state.state = malloc(sizeof(struct emuState));
+	if (emu == NULL) {
+		fprintf(stderr, "Could not allocate emulator state.\n");
+		return 1;
+	}
 	cpuBoot(emu);
 
 	state.brk = -1;
@@ -493,11 +497,11 @@ int main(int argc, char *argv[]) {
 
 	rl_attempted_completion_function = commandCompletion;
 
-	long double lasttime = 0;
+	double lasttime = 0;
 
 	while (true) {
 		if (state.running) {
-			long double dt = deltatime(&lasttime);
+			double dt = deltatime(&lasttime);
 			int startCycles = emu->cycleDiff + dt * CLOCK_SPEED;
 			cpu_status_t status = emulateUntil(emu, dt, state.brk);
 			if (status != CPU_OK) {
@@ -527,5 +531,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	free(emu);
 	return 0;
 }

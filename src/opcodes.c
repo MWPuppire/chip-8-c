@@ -6,6 +6,9 @@
 #include <opcodes.h>
 #include <instructions.h>
 
+// If I ever want more precise instruction timings:
+// https://jackson-s.me/2019/07/13/Chip-8-Instruction-Scheduling-and-Frequency.html
+
 void instructionLookup(struct instruction *inst, UWord word) {
 	switch (word & 0xF000) {
 	case 0x0000:

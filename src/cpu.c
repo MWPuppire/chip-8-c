@@ -20,7 +20,7 @@ void cpuBoot(struct emuState *state) {
 	clearScreen(state);
 	clearInput(state);
 	resetRegisters(state);
-	long double time = deltatime(NULL);
+	double time = deltatime(NULL);
 	seedRandom(state, (UWord) time);
 	state->awaitingKey = -1;
 }
@@ -39,12 +39,12 @@ int cpuStep(struct emuState *state) {
 	return cycles + extraCycles;
 }
 
-cpu_status_t emulate(struct emuState *state, long double dt) {
+cpu_status_t emulate(struct emuState *state, double dt) {
 	if (state->awaitingKey != -1) {
 		return CPU_AWAITING_KEY;
 	}
 	state->cycleDiff += dt * CLOCK_SPEED;
-	long double timerDiff = dt * TIMER_SPEED;
+	double timerDiff = dt * TIMER_SPEED;
 	if (state->delayTimer > 0) {
 		UByte diff = timerDiff > state->delayTimer
 			? state->delayTimer : timerDiff;
@@ -59,18 +59,18 @@ cpu_status_t emulate(struct emuState *state, long double dt) {
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);
 		if (cyclesTaken < 0)
-			return CPU_UNKNOWN_OP;
+			return CPU_ERROR;
 		state->cycleDiff -= cyclesTaken;
 	}
 	return CPU_OK;
 }
 
-cpu_status_t emulateUntil(struct emuState *state, long double dt, int breakpoint) {
+cpu_status_t emulateUntil(struct emuState *state, double dt, int breakpoint) {
 	if (state->awaitingKey != -1) {
 		return CPU_AWAITING_KEY;
 	}
 	state->cycleDiff += dt * CLOCK_SPEED;
-	long double timerDiff = dt * TIMER_SPEED;
+	double timerDiff = dt * TIMER_SPEED;
 	if (state->delayTimer > 0) {
 		UByte diff = timerDiff > state->delayTimer
 			? state->delayTimer : timerDiff;
@@ -85,7 +85,7 @@ cpu_status_t emulateUntil(struct emuState *state, long double dt, int breakpoint
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);
 		if (cyclesTaken < 0)
-			return CPU_UNKNOWN_OP;
+			return CPU_ERROR;
 		state->cycleDiff -= cyclesTaken;
 		if (state->registers.pc == breakpoint)
 			return CPU_BREAK;
