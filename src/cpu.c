@@ -27,7 +27,7 @@ void cpuBoot(struct emuState *state) {
 
 int cpuStep(struct emuState *state) {
 	UWord opcode = readMemoryWord(state, state->registers.pc);
-	struct instruction inst;
+	struct instruction inst = { 0 };
 	instructionLookup(&inst, opcode);
 	if (inst.execute == NULL) {
 		unknownOpcode(state, inst);
