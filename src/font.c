@@ -1,7 +1,7 @@
 #include <shared.h>
 #include <font.h>
 
-unsigned char fontset[80] = {
+UByte fontset[80] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
 	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
@@ -25,5 +25,5 @@ UWord spriteAddr[16] = {
 };
 
 void initializeFont(struct emuState *state) {
-	memcpy(state->memory + 0x50, fontset, 80);
+	memcpy(state->memory + 0x50, fontset, sizeof(UByte) * 80);
 }

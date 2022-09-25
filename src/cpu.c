@@ -7,6 +7,7 @@
 #include <cpu.h>
 #include <sound.h>
 #include <delta.h>
+#include <input.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,7 @@ void seedRandom(struct emuState *state, UWord seed) {
 void cpuBoot(struct emuState *state) {
 	clearMemory(state);
 	clearScreen(state);
+	clearInput(state);
 	resetRegisters(state);
 	long double time = deltatime(NULL);
 	seedRandom(state, (UWord) time);

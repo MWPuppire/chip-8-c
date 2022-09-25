@@ -19,7 +19,7 @@ int setIRegister(struct emuState *state, UWord word) {
 
 int regDump(struct emuState *state, UWord word) {
 	UWord addr = state->registers.I;
-	int max = (word >> 8) & 0xF + 1;
+	int max = ((word >> 8) & 0xF) + 1;
 	for (int i = 0; i < max; i++) {
 		UByte reg = readRegister(state, i);
 		writeMemoryByte(state, addr++, reg);
@@ -29,7 +29,7 @@ int regDump(struct emuState *state, UWord word) {
 
 int regLoad(struct emuState *state, UWord word) {
 	UWord addr = state->registers.I;
-	int max = (word >> 8) & 0xF + 1;
+	int max = ((word >> 8) & 0xF) + 1;
 	for (int i = 0; i < max; i++) {
 		UByte byte = readMemoryByte(state, addr++);
 		writeRegister(state, i, byte);
@@ -47,7 +47,7 @@ int moveRegister(struct emuState *state, UWord word) {
 
 int spriteAddrI(struct emuState *state, UWord word) {
 	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	UByte value = readRegister(state, reg);
+	UByte value = readRegister(state, reg) & 15;
 	state->registers.I = spriteAddr[value];
 	return 0;
 }

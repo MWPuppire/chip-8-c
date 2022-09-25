@@ -14,11 +14,11 @@ all: bin/chip8 bin/chip8_debugger
 bin/libchip8.dylib: Makefile $(OBJS) | bin
 	$(CC) -fPIC -shared $(OBJS) -o $@
 
-bin/chip8: Makefile main.c bin/libchip8.dylib | bin
-	$(CC) $(CFLAGS) main.c bin/libchip8.dylib -o $@
+bin/chip8: Makefile frontends/sdl.c bin/libchip8.dylib | bin
+	$(CC) $(CFLAGS) frontends/sdl.c bin/libchip8.dylib -o $@
 
-bin/chip8_debugger: Makefile debug-repl.c bin/libchip8.dylib | bin
-	$(CC) $(CFLAGS) debug-repl.c bin/libchip8.dylib -l readline -o $@
+bin/chip8_debugger: Makefile frontends/debug-repl.c bin/libchip8.dylib | bin
+	$(CC) $(CFLAGS) frontends/debug-repl.c bin/libchip8.dylib -l readline -o $@
 
 bin:
 	mkdir -p bin

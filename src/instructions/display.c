@@ -10,7 +10,7 @@ int draw(struct emuState *state, UWord word) {
 	UByte n = (UByte) word & 0xF;
 	UWord idx = state->registers.I;
 	UByte flag = 0;
-	for (int i = 0; i < n + 1; i++) {
+	for (int i = 0; i < n; i++) {
 		UByte tempX = x + 7;
 		UByte byte = readMemoryByte(state, idx);
 		while (byte > 0) {

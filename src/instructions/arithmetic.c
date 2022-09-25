@@ -42,7 +42,7 @@ int subtractionRegister(struct emuState *state, UWord word) {
 	UByte valueX = readRegister(state, regX);
 	UByte valueY = readRegister(state, regY);
 	writeRegister(state, regX, valueY - valueX);
-	if (((valueY - valueX) & 0xFF) < valueX)
+	if (valueY > valueX)
 		state->registers.vF = 1;
 	else
 		state->registers.vF = 0;

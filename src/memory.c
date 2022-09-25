@@ -32,6 +32,6 @@ void writeMemoryWord(struct emuState *state, UWord position, UWord value) {
 }
 
 void clearMemory(struct emuState *state) {
-	memset(state->memory, 0, 0x1000);
+	memset(state->memory, 0, sizeof(UByte) * 0x1000);
 	initializeFont(state);
 }

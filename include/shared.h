@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifdef __GNUC__
 #	define UNUSED(x) UNUSED_##x __attribute__((__unused__))
@@ -22,6 +23,8 @@
 #define SCREEN_WIDTH  64
 #define SCREEN_HEIGHT 32
 #define SCREEN_MEM    (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
+
+#define STACK_SIZE 64
 
 #if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN \
 	|| defined(__BIG_ENDIAN__) \
@@ -57,15 +60,6 @@ typedef uint_least8_t UByte;
 
 struct emuState {
 	long double cycleDiff;
-/*
-	union {
-		UByte memory[ADDRESSABLE_MEM];
-		struct __attribute__((packed)) {
-			UByte _memMirror[ADDRESSABLE_MEM - SCREEN_MEM];
-			UByte screen[SCREEN_MEM];
-		};
-	};
-*/
 	UByte memory[ADDRESSABLE_MEM];
 	UByte screen[SCREEN_MEM];
 	struct {
@@ -90,8 +84,8 @@ struct emuState {
 	} registers;
 	UByte delayTimer;
 	UByte soundTimer;
-	UByte input[16];
-	UWord callStack[64];
+	bool input[16];
+	UWord callStack[STACK_SIZE];
 	UWord randomState;
 	int callStackPos;
 };

@@ -137,11 +137,11 @@ void instructionLookup(struct instruction *inst, UWord word) {
 	case 0xE000:
 		if ((word & 0xFF) == 0x9E) {
 			inst->disassembly = "if (key() == Vx) goto next;";
-			inst->execute = keyEquals;
+//			inst->execute = keyEquals;
 			inst->cycles = 1;
 		} else if ((word & 0xFF) == 0xA1) {
 			inst->disassembly = "if (key() != Vx) goto next;";
-			inst->execute = keyNotEquals;
+//			inst->execute = keyNotEquals;
 			inst->cycles = 1;
 		}
 		break;
@@ -154,7 +154,7 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			break;
 		case 0x0A:
 			inst->disassembly = "Vx = get_key();";
-			inst->execute = getKey;
+//			inst->execute = getKey;
 			inst->cycles = 1;
 			break;
 		case 0x15:
@@ -173,12 +173,12 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			inst->cycles = 1;
 			break;
 		case 0x29:
-			inst->disassembly = "I = spriteAddr[Vx];";
+			inst->disassembly = "I = sprite_addr[Vx];";
 			inst->execute = spriteAddrI;
 			inst->cycles = 1;
 			break;
 		case 0x33:
-			inst->disassembly = "setBCD(I, Vx);";
+			inst->disassembly = "set_bcd(I, Vx);";
 			inst->execute = bcd;
 			inst->cycles = 1;
 			break;
