@@ -5,19 +5,23 @@
 #include <instructions.h>
 
 int draw(struct emuState *state, UWord word) {
-	UByte x = readRegister(state, (word & 0xF00) >> 8) % SCREEN_WIDTH;
-	UByte y = readRegister(state, (word & 0x0F0) >> 4) % SCREEN_HEIGHT;
+	UByte x = readRegister(state, (word & 0xF00) >> 8);
+	UByte y = readRegister(state, (word & 0x0F0) >> 4);
 	UByte n = (UByte) word & 0xF;
 	UWord idx = state->registers.I;
 	UByte flag = 0;
+	// currently has wrapping behavior
+	// CHIP-8 and SCHIP-8 have clipping
 	for (int i = 0; i < n; i++) {
-		UByte tempX = x + 7;
+		UByte tempX = x;
 		UByte byte = readMemoryByte(state, idx);
 		while (byte > 0) {
-			if (byte & 1)
-				flag |= writeToScreen(state, tempX, y);
-			tempX -= 1;
-			byte >>= 1;
+			if ((byte & 128) == 128)
+				flag |= writeToScreen(state,
+					tempX % SCREEN_WIDTH,
+					y % SCREEN_HEIGHT);
+			tempX += 1;
+			byte <<= 1;
 		}
 		y += 1;
 		idx += 1;

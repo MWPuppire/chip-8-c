@@ -16,6 +16,12 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			inst->disassembly = "(void) 0;";
 			inst->execute = nop;
 			inst->cycles = 1;
+#ifdef SCHIP
+		} else if ((word & 0x00F0) == 0x00B0) {
+			inst->disassembly = "scroll_up(N);";
+		} else if ((word & 0x00F0) == 0x00C0) {
+			inst->disassembly = "scroll_down(N);";
+#endif
 		} else if (word == 0x00E0) {
 			inst->disassembly = "display_clear();";
 			inst->execute = displayClear;
@@ -24,6 +30,18 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			inst->disassembly = "return;";
 			inst->execute = returnInst;
 			inst->cycles = 1;
+#ifdef SCHIP
+		} else if (word == 0x00FB) {
+			inst->disassembly = "scroll_right();";
+		} else if (word == 0x00FC) {
+			inst->disassembly = "scroll_left();";
+		} else if (word == 0x00FD) {
+			inst->disassembly = "exit();";
+		} else if (word == 0x00FE) {
+			inst->disassembly = "low_res();";
+		} else if (word == 0x00FF) {
+			inst->disassembly = "high_res();";
+#endif
 		} else {
 			inst->disassembly = "call_routine(0xNNN);";
 		}
@@ -180,6 +198,11 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			inst->execute = spriteAddrI;
 			inst->cycles = 1;
 			break;
+#ifdef SCHIP
+		case 0x30:
+			inst->disassembly = "I = digit_addr[Vx];";
+			break;
+#endif
 		case 0x33:
 			inst->disassembly = "set_bcd(I, Vx);";
 			inst->execute = bcd;
@@ -195,6 +218,14 @@ void instructionLookup(struct instruction *inst, UWord word) {
 			inst->execute = regLoad;
 			inst->cycles = 1;
 			break;
+#ifdef SCHIP
+		case 0x75:
+			inst->disassembly = "persist_dump(Vx);";
+			break;
+		case 0x85:
+			inst->disassembly = "persist_load(Vx);";
+			break;
+#endif
 		}
 		break;
 	}

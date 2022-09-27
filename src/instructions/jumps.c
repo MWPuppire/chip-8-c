@@ -22,7 +22,11 @@ int returnInst(struct emuState *state, UWord UNUSED(word)) {
 
 int jumpV0(struct emuState *state, UWord word) {
 	UWord value = word & 0xFFF;
+#ifdef SCHIP
+	UWord offset = readRegister(state, (word >> 8) & 0xF);
+#else
 	UWord offset = state->registers.v0;
+#endif
 	state->registers.pc = value + offset;
 	return 0;
 }

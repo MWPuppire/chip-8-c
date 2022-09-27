@@ -24,6 +24,9 @@ int regDump(struct emuState *state, UWord word) {
 		UByte reg = readRegister(state, i);
 		writeMemoryByte(state, addr++, reg);
 	}
+#ifndef SCHIP
+	state->registers.I = addr;
+#endif
 	return 0;
 }
 
@@ -34,6 +37,9 @@ int regLoad(struct emuState *state, UWord word) {
 		UByte byte = readMemoryByte(state, addr++);
 		writeRegister(state, i, byte);
 	}
+#ifndef SCHIP
+	state->registers.I = addr;
+#endif
 	return 0;
 }
 

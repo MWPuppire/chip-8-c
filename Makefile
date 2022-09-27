@@ -15,10 +15,10 @@ bin/libchip8.dylib: Makefile $(OBJS) | bin
 	$(CC) -fPIC -shared $(OBJS) -o $@
 
 bin/chip8: Makefile frontends/sdl.c bin/libchip8.dylib | bin
-	$(CC) $(CFLAGS) frontends/sdl.c bin/libchip8.dylib -o $@ -lSDL2
+	$(CC) $(CFLAGS) frontends/sdl.c bin/libchip8.dylib -l SDL2 -o $@
 
 bin/chip8_debugger: Makefile frontends/debug-repl.c bin/libchip8.dylib | bin
-	$(CC) $(CFLAGS) frontends/debug-repl.c bin/libchip8.dylib -l readline -o $@
+	$(CC) $(CFLAGS) frontends/debug-repl.c bin/libchip8.dylib -l readline -l SDL2 -o $@
 
 bin:
 	mkdir -p bin

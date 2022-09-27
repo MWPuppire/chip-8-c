@@ -44,17 +44,13 @@ cpu_status_t emulate(struct emuState *state, double dt) {
 		return CPU_AWAITING_KEY;
 	}
 	state->cycleDiff += dt * CLOCK_SPEED;
-	double timerDiff = dt * TIMER_SPEED;
-	if (state->delayTimer > 0) {
-		UByte diff = timerDiff > state->delayTimer
-			? state->delayTimer : timerDiff;
-		state->delayTimer -= diff;
-	}
-	if (state->soundTimer > 0) {
-		UByte diff = timerDiff > state->delayTimer
-			? state->delayTimer : timerDiff;
-		state->soundTimer -= diff;
-	}
+	state->timerDiff += dt * TIMER_SPEED;
+	UByte timerDiff = (UByte) state->timerDiff;
+	state->delayTimer -= timerDiff > state->delayTimer
+		? state->delayTimer : timerDiff;
+	state->soundTimer -= timerDiff > state->soundTimer
+		? state->soundTimer : timerDiff;
+	state->timerDiff -= timerDiff;
 
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);
@@ -70,17 +66,13 @@ cpu_status_t emulateUntil(struct emuState *state, double dt, int breakpoint) {
 		return CPU_AWAITING_KEY;
 	}
 	state->cycleDiff += dt * CLOCK_SPEED;
-	double timerDiff = dt * TIMER_SPEED;
-	if (state->delayTimer > 0) {
-		UByte diff = timerDiff > state->delayTimer
-			? state->delayTimer : timerDiff;
-		state->delayTimer -= diff;
-	}
-	if (state->soundTimer > 0) {
-		UByte diff = timerDiff > state->soundTimer
-			? state->soundTimer : timerDiff;
-		state->soundTimer -= diff;
-	}
+	state->timerDiff += dt * TIMER_SPEED;
+	UByte timerDiff = (UByte) state->timerDiff;
+	state->delayTimer -= timerDiff > state->delayTimer
+		? state->delayTimer : timerDiff;
+	state->soundTimer -= timerDiff > state->soundTimer
+		? state->soundTimer : timerDiff;
+	state->timerDiff -= timerDiff;
 
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = cpuStep(state);

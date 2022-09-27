@@ -12,6 +12,9 @@
 #define TJE_IMPLEMENTATION
 #include "tiny_jpeg.h"
 
+#define SDL_MAIN_HANDLED
+#include <SDL2/SDL.h>
+
 int strncmpcase(const char *s1, const char *s2, size_t len) {
 	if (s1 == NULL || s2 == NULL)
 		return s2 == NULL ? s1 == NULL : -1;
@@ -79,6 +82,9 @@ struct {
 	int brk;
 	int cycles;
 } state;
+
+// eight pixels for every CHIP-8 pixel
+const int PIXEL_SCALE = 8;
 
 char *readfile(const char *name, size_t *size) {
 	FILE *f = fopen(name, "rb");
@@ -474,10 +480,6 @@ int main(int argc, char *argv[]) {
 	argc--; argv++;
 
 	struct emuState *emu = state.state = malloc(sizeof(struct emuState));
-	if (emu == NULL) {
-		fprintf(stderr, "Could not allocate emulator state.\n");
-		return 1;
-	}
 	cpuBoot(emu);
 
 	state.brk = -1;
@@ -497,24 +499,105 @@ int main(int argc, char *argv[]) {
 
 	rl_attempted_completion_function = commandCompletion;
 
+	SDL_SetMainReady();
+	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+		fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	SDL_Window *window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOWPOS_UNDEFINED, PIXEL_SCALE * SCREEN_WIDTH,
+		PIXEL_SCALE * SCREEN_HEIGHT, 0);
+	if (window == NULL) {
+		fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
+		return 1;
+	}
+	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (renderer == NULL) {
+		fprintf(stderr, "Renderer failed: %s\n", SDL_GetError());
+		return 1;
+	}
+
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
+
 	double lasttime = 0;
 
 	while (true) {
 		if (state.running) {
+			bool quit = false;
+			SDL_Event e;
+			while (SDL_PollEvent(&e)) {
+				switch (e.type) {
+				case SDL_QUIT:
+					quit = true;
+					break;
+				case SDL_KEYDOWN:
+					switch (e.key.keysym.sym) {
+					case SDLK_1: pressKey(emu, 0x1); break;
+					case SDLK_2: pressKey(emu, 0x2); break;
+					case SDLK_3: pressKey(emu, 0x3); break;
+					case SDLK_4: pressKey(emu, 0xC); break;
+					case SDLK_q: pressKey(emu, 0x4); break;
+					case SDLK_w: pressKey(emu, 0x5); break;
+					case SDLK_e: pressKey(emu, 0x6); break;
+					case SDLK_r: pressKey(emu, 0xD); break;
+					case SDLK_a: pressKey(emu, 0x7); break;
+					case SDLK_s: pressKey(emu, 0x8); break;
+					case SDLK_d: pressKey(emu, 0x9); break;
+					case SDLK_f: pressKey(emu, 0xE); break;
+					case SDLK_z: pressKey(emu, 0xA); break;
+					case SDLK_x: pressKey(emu, 0x0); break;
+					case SDLK_c: pressKey(emu, 0xB); break;
+					case SDLK_v: pressKey(emu, 0xF); break;
+					default: break; // don't case
+					}
+					break;
+				case SDL_KEYUP:
+					switch (e.key.keysym.sym) {
+					case SDLK_1: releaseKey(emu, 0x1); break;
+					case SDLK_2: releaseKey(emu, 0x2); break;
+					case SDLK_3: releaseKey(emu, 0x3); break;
+					case SDLK_4: releaseKey(emu, 0xC); break;
+					case SDLK_q: releaseKey(emu, 0x4); break;
+					case SDLK_w: releaseKey(emu, 0x5); break;
+					case SDLK_e: releaseKey(emu, 0x6); break;
+					case SDLK_r: releaseKey(emu, 0xD); break;
+					case SDLK_a: releaseKey(emu, 0x7); break;
+					case SDLK_s: releaseKey(emu, 0x8); break;
+					case SDLK_d: releaseKey(emu, 0x9); break;
+					case SDLK_f: releaseKey(emu, 0xE); break;
+					case SDLK_z: releaseKey(emu, 0xA); break;
+					case SDLK_x: releaseKey(emu, 0x0); break;
+					case SDLK_c: releaseKey(emu, 0xB); break;
+					case SDLK_v: releaseKey(emu, 0xF); break;
+					default: break; // don't case
+					}
+					break;
+				default:
+					// don't care
+					break;
+				}
+			}
+			if (quit) {
+				break;
+			}
+
 			double dt = deltatime(&lasttime);
 			int startCycles = emu->cycleDiff + dt * CLOCK_SPEED;
 			cpu_status_t status = emulateUntil(emu, dt, state.brk);
-			if (status != CPU_OK) {
-				state.running = PAUSED;
-				if (status == CPU_AWAITING_KEY) {
-					printf("CHIP-8 awaiting key press\n");
-				} else if (status == CPU_BREAK) {
-					printf("Breakpoint reached; pausing\n");
-				}
-				continue;
-			}
 			int endCycles = emu->cycleDiff;
 			state.cycles += startCycles - endCycles;
+			if (status == CPU_BREAK) {
+				state.running = PAUSED;
+				printf("Breakpoint reached; pausing\n");
+				continue;
+			} else if (status == CPU_ERROR) {
+				state.running = PAUSED;
+				printf("Error encountered; pausing\n");
+				continue;
+			}
 			if (shouldBeep(emu)) {
 				printf("Beep\n");
 			}
@@ -529,8 +612,26 @@ int main(int argc, char *argv[]) {
 			if (state.running)
 				deltatime(&lasttime);
 		}
+
+		for (UByte x = 0; x < SCREEN_WIDTH; x++) {
+			for (UByte y = 0; y < SCREEN_WIDTH; y++) {
+				UByte pixelSet = readFromScreen(emu, x, y);
+				Uint8 color = pixelSet ? 0xFF : 0x00;
+				SDL_SetRenderDrawColor(renderer, color, color,
+					color, SDL_ALPHA_OPAQUE);
+				SDL_Rect rect = {
+					.x = (int) x * PIXEL_SCALE,
+					.y = (int) y * PIXEL_SCALE,
+					.w = PIXEL_SCALE, .h = PIXEL_SCALE,
+				};
+				SDL_RenderFillRect(renderer, &rect);
+			}
+		}
+		SDL_RenderPresent(renderer);
 	}
 
-	free(emu);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 	return 0;
 }

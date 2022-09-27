@@ -117,6 +117,7 @@ int main(int argc, char *argv[]) {
 				case SDLK_x: pressKey(emu, 0x0); break;
 				case SDLK_c: pressKey(emu, 0xB); break;
 				case SDLK_v: pressKey(emu, 0xF); break;
+				default: break; // don't care
 				}
 				break;
 			case SDL_KEYUP:
@@ -137,6 +138,7 @@ int main(int argc, char *argv[]) {
 				case SDLK_x: releaseKey(emu, 0x0); break;
 				case SDLK_c: releaseKey(emu, 0xB); break;
 				case SDLK_v: releaseKey(emu, 0xF); break;
+				default: break; // don't care
 				}
 				break;
 			default:

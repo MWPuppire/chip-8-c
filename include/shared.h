@@ -24,7 +24,7 @@
 #define SCREEN_HEIGHT 32
 #define SCREEN_MEM    (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
 
-#define STACK_SIZE 64
+#define STACK_SIZE 16
 
 #if defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN \
 	|| defined(__BIG_ENDIAN__) \
@@ -89,4 +89,5 @@ struct emuState {
 	UWord randomState;
 	int callStackPos;
 	int awaitingKey;
+	double timerDiff;
 };
