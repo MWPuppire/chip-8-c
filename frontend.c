@@ -1,20 +1,23 @@
-#include <assert.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <stdbool.h>
-#include <readline/readline.h>
+
+#ifdef DEBUG_REPL
+#	include <ctype.h>
+#	include <assert.h>
+#	include <signal.h>
+#	include <readline/readline.h>
+#	define TJE_IMPLEMENTATION
+#	include "tiny_jpeg.h"
+#endif
 
 #include <chip8.h>
-
-#define TJE_IMPLEMENTATION
-#include "tiny_jpeg.h"
 
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
+#ifdef DEBUG_REPL
 int strncmpcase(const char *s1, const char *s2, size_t len) {
 	if (s1 == NULL || s2 == NULL)
 		return s2 == NULL ? s1 == NULL : -1;
@@ -71,6 +74,7 @@ const int COMMAND_ARGC[COMMAND_COUNT] = {
 	-1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2,
 	1, 1, 2, 1, 1, 1, 3, 1, 1, 2, 1, 3
 };
+#endif
 
 enum execState { PAUSED = 0, RUNNING = 1 };
 
@@ -138,6 +142,7 @@ int readROM(struct emuState *state, char *file) {
 	return 0;
 }
 
+#ifdef DEBUG_REPL
 int dumpDisplay(struct emuState *state, const char *file) {
 	static unsigned char data[4 * SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
 	for (int x = 0; x < SCREEN_WIDTH; x++) {
@@ -474,6 +479,7 @@ command_cleanup:
 	free(base);
 	free(args);
 }
+#endif
 
 int main(int argc, char *argv[]) {
 	// drop the program name
@@ -484,6 +490,7 @@ int main(int argc, char *argv[]) {
 
 	state.brk = -1;
 
+#ifdef DEBUG_REPL
 	if (argc > 0) {
 		int fail = readROM(emu, argv[0]);
 		if (fail)
@@ -498,6 +505,20 @@ int main(int argc, char *argv[]) {
 	}
 
 	rl_attempted_completion_function = commandCompletion;
+#else
+	if (argc < 1) {
+		fprintf(stderr, "Must provide a ROM argument.\n");
+		return 1;
+	}
+	int fail = readROM(emu, argv[0]);
+	if (fail) {
+		fprintf(stderr, "Error loading ROM.\n");
+		return 1;
+	} else {
+		state.hasRom = true;
+		state.running = true;
+	}
+#endif
 
 	SDL_SetMainReady();
 	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
@@ -523,6 +544,10 @@ int main(int argc, char *argv[]) {
 	SDL_RenderPresent(renderer);
 
 	double lasttime = 0;
+	// get the time to compare to with deltatime
+	deltatime(&lasttime);
+
+	int exitCode = 0;
 
 	while (true) {
 		if (state.running) {
@@ -594,13 +619,20 @@ int main(int argc, char *argv[]) {
 				printf("Breakpoint reached; pausing\n");
 				continue;
 			} else if (status == CPU_ERROR) {
+#ifdef DEBUG_REPL
 				state.running = PAUSED;
 				printf("Error encountered; pausing\n");
 				continue;
+#else
+				printf("Error encountered\n");
+				exitCode = 1;
+				break;
+#endif
 			}
 			if (shouldBeep(emu)) {
 				printf("Beep\n");
 			}
+#ifdef DEBUG_REPL
 		} else {
 			char *buffer = readline("> ");
 			if (!buffer)
@@ -611,10 +643,11 @@ int main(int argc, char *argv[]) {
 			free(buffer);
 			if (state.running)
 				deltatime(&lasttime);
+#endif
 		}
 
 		for (UByte x = 0; x < SCREEN_WIDTH; x++) {
-			for (UByte y = 0; y < SCREEN_WIDTH; y++) {
+			for (UByte y = 0; y < SCREEN_HEIGHT; y++) {
 				UByte pixelSet = readFromScreen(emu, x, y);
 				Uint8 color = pixelSet ? 0xFF : 0x00;
 				SDL_SetRenderDrawColor(renderer, color, color,
@@ -633,5 +666,5 @@ int main(int argc, char *argv[]) {
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	return 0;
+	return exitCode;
 }
