@@ -2,4 +2,4 @@
 
 #include "shared.h"
 
-int loadROM(struct emuState *state, const char *rom, long size);
+c8_status_t c8_loadROM(c8_state_t *state, const unsigned char *rom, long size);

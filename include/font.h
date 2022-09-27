@@ -2,6 +2,6 @@
 
 #include "shared.h"
 
-extern unsigned char fontset[80];
-extern UWord spriteAddr[16];
-void initializeFont(struct emuState *state);
+extern const unsigned char C8_FONT_SET[80];
+extern const UWord C8_SPRITE_ADDR[16];
+void c8_initializeFont(c8_state_t *state);

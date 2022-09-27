@@ -2,21 +2,21 @@
 #include <registers.h>
 #include <instructions.h>
 
-int getDelay(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
+int c8_getDelay(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UByte timer = (UByte) state->delayTimer;
-	writeRegister(state, reg, timer);
+	c8_writeRegister(state, reg, timer);
 	return 0;
 }
 
-int setDelayTimer(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	state->delayTimer = readRegister(state, reg);
+int c8_setDelayTimer(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	state->delayTimer = c8_readRegister(state, reg);
 	return 0;
 }
 
-int setSoundTimer(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	state->soundTimer = readRegister(state, reg);
+int c8_setSoundTimer(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	state->soundTimer = c8_readRegister(state, reg);
 	return 0;
 }

@@ -3,27 +3,28 @@
 #include <instructions.h>
 #include <registers.h>
 
-int gotoInst(struct emuState *state, UWord word) {
+int c8_gotoInst(c8_state_t *state, UWord word) {
 	UWord dest = word & 0xFFF;
 	state->registers.pc = dest;
 	return 0;
 }
 
-int callInst(struct emuState *state, UWord word) {
+int c8_callInst(c8_state_t *state, UWord word) {
 	UWord pos = word & 0xFFF;
-	callRoutine(state, pos);
+	c8_callRoutine(state, pos);
 	return 0;
 }
 
-int returnInst(struct emuState *state, UWord UNUSED(word)) {
-	returnRoutine(state);
+int c8_returnInst(c8_state_t *state, UWord UNUSED(word)) {
+	c8_returnRoutine(state);
 	return 0;
 }
 
-int jumpV0(struct emuState *state, UWord word) {
+int c8_jumpV0(c8_state_t *state, UWord word) {
 	UWord value = word & 0xFFF;
 #ifdef SCHIP
-	UWord offset = readRegister(state, (word >> 8) & 0xF);
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	UWord offset = readRegister(state, reg);
 #else
 	UWord offset = state->registers.v0;
 #endif
@@ -31,9 +32,10 @@ int jumpV0(struct emuState *state, UWord word) {
 	return 0;
 }
 
-int jumpOffset(struct emuState *state, UWord word) {
+int c8_jumpOffset(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UWord value = word & 0xFFF;
-	UWord offset = readRegister(state, (word >> 8) & 0xF);
+	UWord offset = c8_readRegister(state, reg);
 	state->registers.pc = value + offset;
 	return 0;
 }

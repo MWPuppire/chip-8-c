@@ -3,17 +3,17 @@
 #include <registers.h>
 #include <instructions.h>
 
-int bcd(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	UByte val = readRegister(state, reg);
-	writeMemoryByte(state, state->registers.I + 0, val / 100);
-	writeMemoryByte(state, state->registers.I + 1, (val / 10) % 10);
-	writeMemoryByte(state, state->registers.I + 2, val % 10);
+int c8_bcd(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	UByte val = c8_readRegister(state, reg);
+	c8_writeMemoryByte(state, state->registers.I + 0, val / 100);
+	c8_writeMemoryByte(state, state->registers.I + 1, (val / 10) % 10);
+	c8_writeMemoryByte(state, state->registers.I + 2, val % 10);
 	return 0;
 }
 
-int randRegister(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
+int c8_randRegister(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UByte val = word & 0xFF;
 	// Xorshift LFSR
 	UWord lfsr = state->randomState;
@@ -21,10 +21,10 @@ int randRegister(struct emuState *state, UWord word) {
 	lfsr ^= lfsr <<  9;
 	lfsr ^= lfsr >> 13;
 	state->randomState = lfsr;
-	writeRegister(state, reg, lfsr & val);
+	c8_writeRegister(state, reg, lfsr & val);
 	return 0;
 }
 
-int nop(struct emuState *UNUSED(state), UWord UNUSED(word)) {
+int c8_nop(c8_state_t *UNUSED(state), UWord UNUSED(word)) {
 	return 0;
 }

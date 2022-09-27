@@ -13,6 +13,7 @@
 #endif
 
 #include <chip8.h>
+#include <delta.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
@@ -79,7 +80,7 @@ const int COMMAND_ARGC[COMMAND_COUNT] = {
 enum execState { PAUSED = 0, RUNNING = 1 };
 
 struct {
-	struct emuState *state;
+	c8_state_t *state;
 	enum execState running;
 	bool logging;
 	bool hasRom;
@@ -90,7 +91,7 @@ struct {
 // eight pixels for every CHIP-8 pixel
 const int PIXEL_SCALE = 8;
 
-char *readfile(const char *name, size_t *size) {
+unsigned char *readfile(const char *name, size_t *size) {
 	FILE *f = fopen(name, "rb");
 	if (f == NULL) {
 		*size = 0;
@@ -100,7 +101,7 @@ char *readfile(const char *name, size_t *size) {
 	long fsize = ftell(f);
 	fseek(f, 0, SEEK_SET);
 
-	char *str = malloc(fsize + 1);
+	unsigned char *str = malloc(fsize + 1);
 	if (str == NULL) {
 		*size = 0;
 		return NULL;
@@ -128,13 +129,13 @@ int writefile(const char *name, const unsigned char *buf, size_t size) {
 	return 0;
 }
 
-int readROM(struct emuState *state, char *file) {
+int readROM(c8_state_t *state, char *file) {
 	size_t size;
-	char *rom = readfile(file, &size);
+	unsigned char *rom = readfile(file, &size);
 	if (rom == NULL)
 		return 1;
 
-	int fail = loadROM(state, rom, size);
+	int fail = c8_loadROM(state, rom, size);
 	free(rom);
 	if (fail)
 		return 1;
@@ -143,19 +144,19 @@ int readROM(struct emuState *state, char *file) {
 }
 
 #ifdef DEBUG_REPL
-int dumpDisplay(struct emuState *state, const char *file) {
-	static unsigned char data[4 * SCREEN_WIDTH * SCREEN_HEIGHT] = { 0 };
-	for (int x = 0; x < SCREEN_WIDTH; x++) {
-		for (int y = 0; y < SCREEN_HEIGHT; y++) {
-			UByte pixelSet = readFromScreen(state, x, y);
+int dumpDisplay(c8_state_t *state, const char *file) {
+	static unsigned char data[4 * C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT] = { 0 };
+	for (int x = 0; x < C8_SCREEN_WIDTH; x++) {
+		for (int y = 0; y < C8_SCREEN_HEIGHT; y++) {
+			UByte pixelSet = c8_readFromScreen(state, x, y);
 			unsigned char color = pixelSet ? 0xFF : 0x00;
-			data[(x + y * SCREEN_WIDTH) * 4 + 0] = color;
-			data[(x + y * SCREEN_WIDTH) * 4 + 1] = color;
-			data[(x + y * SCREEN_WIDTH) * 4 + 2] = color;
-			data[(x + y * SCREEN_WIDTH) * 4 + 3] = 0xFF;
+			data[(x + y * C8_SCREEN_WIDTH) * 4 + 0] = color;
+			data[(x + y * C8_SCREEN_WIDTH) * 4 + 1] = color;
+			data[(x + y * C8_SCREEN_WIDTH) * 4 + 2] = color;
+			data[(x + y * C8_SCREEN_WIDTH) * 4 + 3] = 0xFF;
 		}
 	}
-	return !tje_encode_to_file(file, SCREEN_WIDTH, SCREEN_HEIGHT, 4, data);
+	return !tje_encode_to_file(file, C8_SCREEN_WIDTH, C8_SCREEN_HEIGHT, 4, data);
 }
 
 void sigIntHandler(int signal) {
@@ -282,7 +283,7 @@ void executeCommand(const char *cmd) {
 		goto command_cleanup;
 	}
 
-	struct emuState *emu = state.state;
+	c8_state_t *emu = state.state;
 
 	switch (commandId) {
 	case NO_COMMAND: {
@@ -318,7 +319,7 @@ void executeCommand(const char *cmd) {
 				break;
 			}
 		}
-		printf("%s\n", disassemble(emu, pos));
+		printf("%s\n", c8_disassemble(emu, pos));
 		break;
 	}
 	case DUMP_DISPLAY: {
@@ -362,7 +363,7 @@ void executeCommand(const char *cmd) {
 	}
 	case LOAD_MEMORY: {
 		size_t size;
-		const char *buf = readfile(args[1], &size);
+		const unsigned char *buf = readfile(args[1], &size);
 		if (size < 0x1000) {
 			printf("File too small to write as memory.\n");
 			break;
@@ -401,18 +402,18 @@ void executeCommand(const char *cmd) {
 		if (parseWord(args[1], &loc) != 0) {
 			break;
 		}
-		printf("0x%02x\n", readMemoryByte(emu, loc));
+		printf("0x%02x\n", c8_readMemoryByte(emu, loc));
 		break;
 	}
 	case REBOOT: {
-		cpuBoot(emu);
+		c8_cpuBoot(emu);
 		state.hasRom = false;
 		break;
 	}
 	case REGS: {
-		for (int i = 0; i < 8; i++)
-			printf("v%x: %02x\tv%x: %02x\n", i, readRegister(emu, i),
-				i + 8, readRegister(emu, i + 8));
+		for (c8_register_t i = 0; i < C8_REG_8; i++)
+			printf("v%x: %02x\tv%x: %02x\n", i, c8_readRegister(emu, i),
+				i + 8, c8_readRegister(emu, i + 8));
 		printf("Program Counter: %04x\n", emu->registers.pc);
 		printf("Address: %04x\n", emu->registers.I);
 		break;
@@ -434,7 +435,16 @@ void executeCommand(const char *cmd) {
 			printf("No ROM loaded.\n");
 			break;
 		}
-		state.cycles += cpuStep(emu);
+		int cycles = c8_cpuStep(emu);
+		if (cycles >= 0) {
+			state.cycles += cycles;
+		} else {
+			UWord pc = emu->registers.pc;
+			printf("Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
+			const char *disassembly = c8_disassemble(emu, pc);
+			if (disassembly != NULL)
+				printf("%s\n", disassembly);
+		}
 		break;
 	}
 	case TIMERS: {
@@ -450,10 +460,10 @@ void executeCommand(const char *cmd) {
 		if (key > 16) {
 			break;
 		}
-		if (isKeyDown(emu, (int) key)) {
-			releaseKey(emu, (int) key);
+		if (c8_isKeyDown(emu, (int) key)) {
+			c8_releaseKey(emu, (int) key);
 		} else {
-			pressKey(emu, (int) key);
+			c8_pressKey(emu, (int) key);
 		}
 		break;
 	}
@@ -470,7 +480,7 @@ void executeCommand(const char *cmd) {
 		if (parseByte(args[2], &byte) != 0) {
 			break;
 		}
-		writeMemoryByte(emu, loc, byte);
+		c8_writeMemoryByte(emu, loc, byte);
 		break;
 	}
 	}
@@ -489,12 +499,12 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	struct emuState *emu = state.state = malloc(sizeof(struct emuState));
+	c8_state_t *emu = state.state = malloc(sizeof(c8_state_t));
 	if (emu == NULL) {
 		fprintf(stderr, "Could not allocate memory.\n");
 		return 1;
 	}
-	cpuBoot(emu);
+	c8_cpuBoot(emu);
 
 	state.brk = -1;
 
@@ -538,8 +548,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED,
-		SDL_WINDOWPOS_UNDEFINED, PIXEL_SCALE * SCREEN_WIDTH,
-		PIXEL_SCALE * SCREEN_HEIGHT, 0);
+		SDL_WINDOWPOS_UNDEFINED, PIXEL_SCALE * C8_SCREEN_WIDTH,
+		PIXEL_SCALE * C8_SCREEN_HEIGHT, 0);
 	if (window == NULL) {
 		fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
 		return 1;
@@ -570,44 +580,44 @@ int main(int argc, char *argv[]) {
 					break;
 				case SDL_KEYDOWN:
 					switch (e.key.keysym.sym) {
-					case SDLK_1: pressKey(emu, 0x1); break;
-					case SDLK_2: pressKey(emu, 0x2); break;
-					case SDLK_3: pressKey(emu, 0x3); break;
-					case SDLK_4: pressKey(emu, 0xC); break;
-					case SDLK_q: pressKey(emu, 0x4); break;
-					case SDLK_w: pressKey(emu, 0x5); break;
-					case SDLK_e: pressKey(emu, 0x6); break;
-					case SDLK_r: pressKey(emu, 0xD); break;
-					case SDLK_a: pressKey(emu, 0x7); break;
-					case SDLK_s: pressKey(emu, 0x8); break;
-					case SDLK_d: pressKey(emu, 0x9); break;
-					case SDLK_f: pressKey(emu, 0xE); break;
-					case SDLK_z: pressKey(emu, 0xA); break;
-					case SDLK_x: pressKey(emu, 0x0); break;
-					case SDLK_c: pressKey(emu, 0xB); break;
-					case SDLK_v: pressKey(emu, 0xF); break;
-					default: break; // don't case
+					case SDLK_1: c8_pressKey(emu, 0x1); break;
+					case SDLK_2: c8_pressKey(emu, 0x2); break;
+					case SDLK_3: c8_pressKey(emu, 0x3); break;
+					case SDLK_4: c8_pressKey(emu, 0xC); break;
+					case SDLK_q: c8_pressKey(emu, 0x4); break;
+					case SDLK_w: c8_pressKey(emu, 0x5); break;
+					case SDLK_e: c8_pressKey(emu, 0x6); break;
+					case SDLK_r: c8_pressKey(emu, 0xD); break;
+					case SDLK_a: c8_pressKey(emu, 0x7); break;
+					case SDLK_s: c8_pressKey(emu, 0x8); break;
+					case SDLK_d: c8_pressKey(emu, 0x9); break;
+					case SDLK_f: c8_pressKey(emu, 0xE); break;
+					case SDLK_z: c8_pressKey(emu, 0xA); break;
+					case SDLK_x: c8_pressKey(emu, 0x0); break;
+					case SDLK_c: c8_pressKey(emu, 0xB); break;
+					case SDLK_v: c8_pressKey(emu, 0xF); break;
+					default: break; // don't care
 					}
 					break;
 				case SDL_KEYUP:
 					switch (e.key.keysym.sym) {
-					case SDLK_1: releaseKey(emu, 0x1); break;
-					case SDLK_2: releaseKey(emu, 0x2); break;
-					case SDLK_3: releaseKey(emu, 0x3); break;
-					case SDLK_4: releaseKey(emu, 0xC); break;
-					case SDLK_q: releaseKey(emu, 0x4); break;
-					case SDLK_w: releaseKey(emu, 0x5); break;
-					case SDLK_e: releaseKey(emu, 0x6); break;
-					case SDLK_r: releaseKey(emu, 0xD); break;
-					case SDLK_a: releaseKey(emu, 0x7); break;
-					case SDLK_s: releaseKey(emu, 0x8); break;
-					case SDLK_d: releaseKey(emu, 0x9); break;
-					case SDLK_f: releaseKey(emu, 0xE); break;
-					case SDLK_z: releaseKey(emu, 0xA); break;
-					case SDLK_x: releaseKey(emu, 0x0); break;
-					case SDLK_c: releaseKey(emu, 0xB); break;
-					case SDLK_v: releaseKey(emu, 0xF); break;
-					default: break; // don't case
+					case SDLK_1: c8_releaseKey(emu, 0x1); break;
+					case SDLK_2: c8_releaseKey(emu, 0x2); break;
+					case SDLK_3: c8_releaseKey(emu, 0x3); break;
+					case SDLK_4: c8_releaseKey(emu, 0xC); break;
+					case SDLK_q: c8_releaseKey(emu, 0x4); break;
+					case SDLK_w: c8_releaseKey(emu, 0x5); break;
+					case SDLK_e: c8_releaseKey(emu, 0x6); break;
+					case SDLK_r: c8_releaseKey(emu, 0xD); break;
+					case SDLK_a: c8_releaseKey(emu, 0x7); break;
+					case SDLK_s: c8_releaseKey(emu, 0x8); break;
+					case SDLK_d: c8_releaseKey(emu, 0x9); break;
+					case SDLK_f: c8_releaseKey(emu, 0xE); break;
+					case SDLK_z: c8_releaseKey(emu, 0xA); break;
+					case SDLK_x: c8_releaseKey(emu, 0x0); break;
+					case SDLK_c: c8_releaseKey(emu, 0xB); break;
+					case SDLK_v: c8_releaseKey(emu, 0xF); break;
+					default: break; // don't care
 					}
 					break;
 				default:
@@ -620,26 +630,29 @@ int main(int argc, char *argv[]) {
 			}
 
 			double dt = deltatime(&lasttime);
-			int startCycles = emu->cycleDiff + dt * CLOCK_SPEED;
-			cpu_status_t status = emulateUntil(emu, dt, state.brk);
+			int startCycles = emu->cycleDiff + dt * C8_CLOCK_SPEED;
+			c8_status_t status = c8_emulateUntil(emu, dt, state.brk);
 			int endCycles = emu->cycleDiff;
 			state.cycles += startCycles - endCycles;
-			if (status == CPU_BREAK) {
+			if (status == C8_BREAK) {
 				state.running = PAUSED;
 				printf("Breakpoint reached; pausing\n");
 				continue;
-			} else if (status == CPU_ERROR) {
+			} else if (status == C8_UNKNOWN_OP) {
+				UWord pc = emu->registers.pc;
+				printf("Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
+				const char *disassembly = c8_disassemble(emu, pc);
+				if (disassembly != NULL)
+					printf("%s\n", disassembly);
 #ifdef DEBUG_REPL
 				state.running = PAUSED;
-				printf("Error encountered; pausing\n");
 				continue;
 #else
-				printf("Error encountered\n");
 				exitCode = 1;
 				break;
 #endif
 			}
-			if (shouldBeep(emu)) {
+			if (c8_shouldBeep(emu)) {
 				printf("Beep\n");
 			}
 #ifdef DEBUG_REPL
@@ -656,9 +669,9 @@ int main(int argc, char *argv[]) {
 #endif
 		}
 
-		for (UByte x = 0; x < SCREEN_WIDTH; x++) {
-			for (UByte y = 0; y < SCREEN_HEIGHT; y++) {
-				UByte pixelSet = readFromScreen(emu, x, y);
+		for (UByte x = 0; x < C8_SCREEN_WIDTH; x++) {
+			for (UByte y = 0; y < C8_SCREEN_HEIGHT; y++) {
+				UByte pixelSet = c8_readFromScreen(emu, x, y);
 				Uint8 color = pixelSet ? 0xFF : 0x00;
 				SDL_SetRenderDrawColor(renderer, color, color,
 					color, SDL_ALPHA_OPAQUE);

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <shared.h>
 #include <memory.h>
@@ -9,12 +10,13 @@
 // If I ever want more precise instruction timings:
 // https://jackson-s.me/2019/07/13/Chip-8-Instruction-Scheduling-and-Frequency.html
 
-void instructionLookup(struct instruction *inst, UWord word) {
+int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
+	memset(inst, 0, sizeof(struct c8_instruction));
 	switch (word & 0xF000) {
 	case 0x0000:
 		if (word == 0x0000) {
 			inst->disassembly = "(void) 0;";
-			inst->execute = nop;
+			inst->execute = c8_nop;
 			inst->cycles = 1;
 #ifdef SCHIP
 		} else if ((word & 0x00F0) == 0x00B0) {
@@ -24,11 +26,11 @@ void instructionLookup(struct instruction *inst, UWord word) {
 #endif
 		} else if (word == 0x00E0) {
 			inst->disassembly = "display_clear();";
-			inst->execute = displayClear;
+			inst->execute = c8_displayClear;
 			inst->cycles = 1;
 		} else if (word == 0x00EE) {
 			inst->disassembly = "return;";
-			inst->execute = returnInst;
+			inst->execute = c8_returnInst;
 			inst->cycles = 1;
 #ifdef SCHIP
 		} else if (word == 0x00FB) {
@@ -48,121 +50,121 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		break;
 	case 0x1000:
 		inst->disassembly = "goto NNN;";
-		inst->execute = gotoInst;
+		inst->execute = c8_gotoInst;
 		inst->cycles = 1;
 		break;
 	case 0x2000:
 		inst->disassembly = "*(0xNNN)();";
-		inst->execute = callInst;
+		inst->execute = c8_callInst;
 		inst->cycles = 1;
 		break;
 	case 0x3000:
 		inst->disassembly = "if (Vx == NN) goto next;";
-		inst->execute = ifEquals;
+		inst->execute = c8_ifEquals;
 		inst->cycles = 1;
 		break;
 	case 0x4000:
 		inst->disassembly = "if (Vx != NN) goto next;";
-		inst->execute = ifNotEquals;
+		inst->execute = c8_ifNotEquals;
 		inst->cycles = 1;
 		break;
 	case 0x5000:
 		inst->disassembly = "if (Vx == Vy) goto next;";
-		inst->execute = ifEqualsReg;
+		inst->execute = c8_ifEqualsReg;
 		inst->cycles = 1;
 		break;
 	case 0x6000:
 		inst->disassembly = "Vx = NN;";
-		inst->execute = setRegister;
+		inst->execute = c8_setRegister;
 		inst->cycles = 1;
 		break;
 	case 0x7000:
 		inst->disassembly = "Vx += NN;";
-		inst->execute = pluseqImmediate;
+		inst->execute = c8_pluseqImmediate;
 		inst->cycles = 1;
 		break;
 	case 0x8000:
 		switch (word & 0xF) {
 		case 0x0:
 			inst->disassembly = "Vx = Vy;";
-			inst->execute = moveRegister;
+			inst->execute = c8_moveRegister;
 			inst->cycles = 1;
 			break;
 		case 0x1:
 			inst->disassembly = "Vx |= Vy;";
-			inst->execute = orRegister;
+			inst->execute = c8_orRegister;
 			inst->cycles = 1;
 			break;
 		case 0x2:
 			inst->disassembly = "Vx &= Vy;";
-			inst->execute = andRegister;
+			inst->execute = c8_andRegister;
 			inst->cycles = 1;
 			break;
 		case 0x3:
 			inst->disassembly = "Vx ^= Vy;";
-			inst->execute = xorRegister;
+			inst->execute = c8_xorRegister;
 			inst->cycles = 1;
 			break;
 		case 0x4:
 			inst->disassembly = "Vx += Vy;";
-			inst->execute = pluseqRegister;
+			inst->execute = c8_pluseqRegister;
 			inst->cycles = 1;
 			break;
 		case 0x5:
 			inst->disassembly = "Vx -= Vy;";
-			inst->execute = minuseqRegister;
+			inst->execute = c8_minuseqRegister;
 			inst->cycles = 1;
 			break;
 		case 0x6:
 			inst->disassembly = "Vx >>= 1;";
-			inst->execute = shiftRegisterRight;
+			inst->execute = c8_shiftRegisterRight;
 			inst->cycles = 1;
 			break;
 		case 0x7:
 			inst->disassembly = "Vx = Vy - Vx;";
-			inst->execute = subtractionRegister;
+			inst->execute = c8_subtractionRegister;
 			inst->cycles = 1;
 			break;
 		case 0xE:
 			inst->disassembly = "Vx <<= 1;";
-			inst->execute = shiftRegisterLeft;
+			inst->execute = c8_shiftRegisterLeft;
 			inst->cycles = 1;
 			break;
 		}
 		break;
 	case 0x9000:
 		inst->disassembly = "if (Vx != Vy) goto next;";
-		inst->execute = ifNotEqualsReg;
+		inst->execute = c8_ifNotEqualsReg;
 		inst->cycles = 1;
 		break;
 	case 0xA000:
 		inst->disassembly = "I = NNN;";
-		inst->execute = setIRegister;
+		inst->execute = c8_setIRegister;
 		inst->cycles = 1;
 		break;
 	case 0xB000:
 		inst->disassembly = "PC = V0 + NNN;";
-		inst->execute = jumpV0;
+		inst->execute = c8_jumpV0;
 		inst->cycles = 1;
 		break;
 	case 0xC000:
 		inst->disassembly = "Vx = rand() & NN;";
-		inst->execute = randRegister;
+		inst->execute = c8_randRegister;
 		inst->cycles = 1;
 		break;
 	case 0xD000:
 		inst->disassembly = "draw(Vx, Vy, N);";
-		inst->execute = draw;
+		inst->execute = c8_draw;
 		inst->cycles = 1;
 		break;
 	case 0xE000:
 		if ((word & 0xFF) == 0x9E) {
 			inst->disassembly = "if (key() == Vx) goto next;";
-			inst->execute = keyEquals;
+			inst->execute = c8_keyEquals;
 			inst->cycles = 1;
 		} else if ((word & 0xFF) == 0xA1) {
 			inst->disassembly = "if (key() != Vx) goto next;";
-			inst->execute = keyNotEquals;
+			inst->execute = c8_keyNotEquals;
 			inst->cycles = 1;
 		}
 		break;
@@ -170,32 +172,32 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		switch (word & 0xFF) {
 		case 0x07:
 			inst->disassembly = "Vx = get_delay();";
-			inst->execute = getDelay;
+			inst->execute = c8_getDelay;
 			inst->cycles = 1;
 			break;
 		case 0x0A:
 			inst->disassembly = "Vx = get_key();";
-			inst->execute = getKey;
+			inst->execute = c8_getKey;
 			inst->cycles = 1;
 			break;
 		case 0x15:
 			inst->disassembly = "delay_timer(Vx);";
-			inst->execute = setDelayTimer;
+			inst->execute = c8_setDelayTimer;
 			inst->cycles = 1;
 			break;
 		case 0x18:
 			inst->disassembly = "sound_timer(Vx);";
-			inst->execute = setSoundTimer;
+			inst->execute = c8_setSoundTimer;
 			inst->cycles = 1;
 			break;
 		case 0x1E:
 			inst->disassembly = "I += Vx;";
-			inst->execute = addToI;
+			inst->execute = c8_addToI;
 			inst->cycles = 1;
 			break;
 		case 0x29:
 			inst->disassembly = "I = sprite_addr[Vx];";
-			inst->execute = spriteAddrI;
+			inst->execute = c8_spriteAddrI;
 			inst->cycles = 1;
 			break;
 #ifdef SCHIP
@@ -205,17 +207,17 @@ void instructionLookup(struct instruction *inst, UWord word) {
 #endif
 		case 0x33:
 			inst->disassembly = "set_bcd(I, Vx);";
-			inst->execute = bcd;
+			inst->execute = c8_bcd;
 			inst->cycles = 1;
 			break;
 		case 0x55:
 			inst->disassembly = "reg_dump(Vx, &I);";
-			inst->execute = regDump;
+			inst->execute = c8_regDump;
 			inst->cycles = 1;
 			break;
 		case 0x65:
 			inst->disassembly = "reg_load(Vx, &I);";
-			inst->execute = regLoad;
+			inst->execute = c8_regLoad;
 			inst->cycles = 1;
 			break;
 #ifdef SCHIP
@@ -229,18 +231,12 @@ void instructionLookup(struct instruction *inst, UWord word) {
 		}
 		break;
 	}
+	return inst->execute == NULL;
 }
 
-void unknownOpcode(struct emuState *state, struct instruction inst) {
-	UWord badInst = readMemoryWord(state, state->registers.pc);
-	fprintf(stderr, "Unknown or unimplemented opcode at 0x%04X: %04X\n",
-		state->registers.pc, badInst);
-	fprintf(stderr, "%s\n", inst.disassembly);
-}
-
-const char *disassemble(struct emuState *state, UWord pos) {
-	UWord word = readMemoryWord(state, pos);
-	struct instruction inst;
-	instructionLookup(&inst, word);
+const char *c8_disassemble(c8_state_t *state, UWord pos) {
+	UWord word = c8_readMemoryWord(state, pos);
+	struct c8_instruction inst;
+	c8_instructionLookup(&inst, word);
 	return inst.disassembly;
 }

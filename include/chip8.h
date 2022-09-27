@@ -3,7 +3,6 @@
 #include "shared.h"
 #include "call.h"
 #include "cpu.h"
-#include "delta.h"
 #include "font.h"
 #include "memory.h"
 #include "opcodes.h"

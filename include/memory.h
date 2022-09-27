@@ -2,10 +2,10 @@
 
 #include "shared.h"
 
-UByte readMemoryByte(struct emuState *state, UWord position);
-SByte readMemorySByte(struct emuState *state, UWord position);
-UWord readMemoryWord(struct emuState *state, UWord position);
-SWord readMemorySWord(struct emuState *state, UWord position);
-void writeMemoryByte(struct emuState *state, UWord position, UByte value);
-void writeMemoryWord(struct emuState *state, UWord position, UWord value);
-void clearMemory(struct emuState *state);
+UByte c8_readMemoryByte(c8_state_t *state, UWord position);
+SByte c8_readMemorySByte(c8_state_t *state, UWord position);
+UWord c8_readMemoryWord(c8_state_t *state, UWord position);
+SWord c8_readMemorySWord(c8_state_t *state, UWord position);
+void c8_writeMemoryByte(c8_state_t *state, UWord position, UByte value);
+void c8_writeMemoryWord(c8_state_t *state, UWord position, UWord value);
+void c8_clearMemory(c8_state_t *state);

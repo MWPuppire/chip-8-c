@@ -2,12 +2,11 @@
 
 #include "shared.h"
 
-struct instruction {
+struct c8_instruction {
 	char *disassembly;
-	int (*execute)(struct emuState *state, UWord instruction);
+	int (*execute)(c8_state_t *state, UWord instruction);
 	int cycles;
 };
 
-void instructionLookup(struct instruction *inst, UWord word);
-void unknownOpcode(struct emuState *state, struct instruction inst);
-const char *disassemble(struct emuState *state, UWord pos);
+int c8_instructionLookup(struct c8_instruction *inst, UWord word);
+const char *c8_disassemble(c8_state_t *state, UWord pos);

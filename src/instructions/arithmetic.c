@@ -2,20 +2,20 @@
 #include <registers.h>
 #include <instructions.h>
 
-int pluseqImmediate(struct emuState *state, UWord word) {
+int c8_pluseqImmediate(c8_state_t *state, UWord word) {
 	UByte value = (UByte) (word & 0xFF);
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	UByte initial = readRegister(state, reg);
-	writeRegister(state, reg, initial + value);
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	UByte initial = c8_readRegister(state, reg);
+	c8_writeRegister(state, reg, initial + value);
 	return 0;
 }
 
-int pluseqRegister(struct emuState *state, UWord word) {
-	UByte regX = (UByte) ((word & 0xF00) >> 8);
-	UByte regY = (UByte) ((word & 0x0F0) >> 4);
-	UByte valueX = readRegister(state, regX);
-	UByte valueY = readRegister(state, regY);
-	writeRegister(state, regX, valueX + valueY);
+int c8_pluseqRegister(c8_state_t *state, UWord word) {
+	c8_register_t regX = (c8_register_t) ((word >> 8) & 0xF);
+	c8_register_t regY = (c8_register_t) ((word >> 4) & 0xF);
+	UByte valueX = c8_readRegister(state, regX);
+	UByte valueY = c8_readRegister(state, regY);
+	c8_writeRegister(state, regX, valueX + valueY);
 	if (((valueX + valueY) & 0xFF) < valueX)
 		state->registers.vF = 1;
 	else
@@ -23,12 +23,12 @@ int pluseqRegister(struct emuState *state, UWord word) {
 	return 0;
 }
 
-int minuseqRegister(struct emuState *state, UWord word) {
-	UByte regX = (UByte) ((word & 0xF00) >> 8);
-	UByte regY = (UByte) ((word & 0x0F0) >> 4);
-	UByte valueX = readRegister(state, regX);
-	UByte valueY = readRegister(state, regY);
-	writeRegister(state, regX, valueX - valueY);
+int c8_minuseqRegister(c8_state_t *state, UWord word) {
+	c8_register_t regX = (c8_register_t) ((word >> 8) & 0xF);
+	c8_register_t regY = (c8_register_t) ((word >> 4) & 0xF);
+	UByte valueX = c8_readRegister(state, regX);
+	UByte valueY = c8_readRegister(state, regY);
+	c8_writeRegister(state, regX, valueX - valueY);
 	if (((valueX - valueY) & 0xFF) < valueX)
 		state->registers.vF = 1;
 	else
@@ -36,12 +36,12 @@ int minuseqRegister(struct emuState *state, UWord word) {
 	return 0;
 }
 
-int subtractionRegister(struct emuState *state, UWord word) {
-	UByte regX = (UByte) ((word & 0xF00) >> 8);
-	UByte regY = (UByte) ((word & 0x0F0) >> 4);
-	UByte valueX = readRegister(state, regX);
-	UByte valueY = readRegister(state, regY);
-	writeRegister(state, regX, valueY - valueX);
+int c8_subtractionRegister(c8_state_t *state, UWord word) {
+	c8_register_t regX = (c8_register_t) ((word >> 8) & 0xF);
+	c8_register_t regY = (c8_register_t) ((word >> 4) & 0xF);
+	UByte valueX = c8_readRegister(state, regX);
+	UByte valueY = c8_readRegister(state, regY);
+	c8_writeRegister(state, regX, valueY - valueX);
 	if (valueY > valueX)
 		state->registers.vF = 1;
 	else
@@ -49,9 +49,9 @@ int subtractionRegister(struct emuState *state, UWord word) {
 	return 0;
 }
 
-int addToI(struct emuState *state, UWord word) {
-	UByte reg = (UByte) ((word & 0xF00) >> 8);
-	UByte value = readRegister(state, reg);
+int c8_addToI(c8_state_t *state, UWord word) {
+	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
+	UByte value = c8_readRegister(state, reg);
 	state->registers.I += value;
 	if (state->registers.I > 0xFFF)
 		state->registers.vF = 1;

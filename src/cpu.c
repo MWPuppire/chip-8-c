@@ -5,32 +5,28 @@
 #include <registers.h>
 #include <screen.h>
 #include <cpu.h>
-#include <delta.h>
 #include <input.h>
 
-#include <stdio.h>
 #include <stdlib.h>
 
-void seedRandom(struct emuState *state, UWord seed) {
+void c8_seedRandom(c8_state_t *state, UWord seed) {
 	state->randomState = seed;
 }
 
-void cpuBoot(struct emuState *state) {
-	clearMemory(state);
-	clearScreen(state);
-	clearInput(state);
-	resetRegisters(state);
-	double time = deltatime(NULL);
-	seedRandom(state, (UWord) time);
+void c8_cpuBoot(c8_state_t *state) {
+	c8_clearMemory(state);
+	c8_clearScreen(state);
+	c8_clearInput(state);
+	c8_resetRegisters(state);
+	c8_seedRandom(state, (UWord) random());
 	state->awaitingKey = -1;
 }
 
-int cpuStep(struct emuState *state) {
-	UWord opcode = readMemoryWord(state, state->registers.pc);
-	struct instruction inst = { 0 };
-	instructionLookup(&inst, opcode);
+int c8_cpuStep(c8_state_t *state) {
+	UWord opcode = c8_readMemoryWord(state, state->registers.pc);
+	struct c8_instruction inst = { 0 };
+	c8_instructionLookup(&inst, opcode);
 	if (inst.execute == NULL) {
-		unknownOpcode(state, inst);
 		return -1;
 	}
 	int cycles = inst.cycles;
@@ -39,12 +35,12 @@ int cpuStep(struct emuState *state) {
 	return cycles + extraCycles;
 }
 
-cpu_status_t emulate(struct emuState *state, double dt) {
+c8_status_t c8_emulate(c8_state_t *state, double dt) {
 	if (state->awaitingKey != -1) {
-		return CPU_AWAITING_KEY;
+		return C8_AWAITING_KEY;
 	}
-	state->cycleDiff += dt * CLOCK_SPEED;
-	state->timerDiff += dt * TIMER_SPEED;
+	state->cycleDiff += dt * C8_CLOCK_SPEED;
+	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
 		? state->delayTimer : timerDiff;
@@ -53,20 +49,20 @@ cpu_status_t emulate(struct emuState *state, double dt) {
 	state->timerDiff -= timerDiff;
 
 	while (state->cycleDiff > 0) {
-		int cyclesTaken = cpuStep(state);
+		int cyclesTaken = c8_cpuStep(state);
 		if (cyclesTaken < 0)
-			return CPU_ERROR;
+			return C8_UNKNOWN_OP;
 		state->cycleDiff -= cyclesTaken;
 	}
-	return CPU_OK;
+	return C8_OK;
 }
 
-cpu_status_t emulateUntil(struct emuState *state, double dt, int breakpoint) {
+c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int breakpoint) {
 	if (state->awaitingKey != -1) {
-		return CPU_AWAITING_KEY;
+		return C8_AWAITING_KEY;
 	}
-	state->cycleDiff += dt * CLOCK_SPEED;
-	state->timerDiff += dt * TIMER_SPEED;
+	state->cycleDiff += dt * C8_CLOCK_SPEED;
+	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
 		? state->delayTimer : timerDiff;
@@ -75,16 +71,16 @@ cpu_status_t emulateUntil(struct emuState *state, double dt, int breakpoint) {
 	state->timerDiff -= timerDiff;
 
 	while (state->cycleDiff > 0) {
-		int cyclesTaken = cpuStep(state);
+		int cyclesTaken = c8_cpuStep(state);
 		if (cyclesTaken < 0)
-			return CPU_ERROR;
+			return C8_UNKNOWN_OP;
 		state->cycleDiff -= cyclesTaken;
 		if (state->registers.pc == breakpoint)
-			return CPU_BREAK;
+			return C8_BREAK;
 	}
-	return CPU_OK;
+	return C8_OK;
 }
 
-bool shouldBeep(struct emuState *state) {
+bool c8_shouldBeep(c8_state_t *state) {
 	return state->soundTimer > 0;
 }

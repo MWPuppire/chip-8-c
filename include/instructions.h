@@ -2,7 +2,7 @@
 
 #include "shared.h"
 
-#define INSTRUCTION(x) int x(struct emuState *state, UWord word)
+#define INSTRUCTION(inst) int c8_##inst(c8_state_t *state, UWord word)
 
 // arithmetic.c
 INSTRUCTION(pluseqImmediate);
