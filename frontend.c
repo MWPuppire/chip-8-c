@@ -485,7 +485,15 @@ int main(int argc, char *argv[]) {
 	// drop the program name
 	argc--; argv++;
 
+	int exitCode = 0;
+	SDL_Window *window = NULL;
+	SDL_Renderer *renderer = NULL;
+
 	struct emuState *emu = state.state = malloc(sizeof(struct emuState));
+	if (emu == NULL) {
+		fprintf(stderr, "Could not allocate memory.\n");
+		return 1;
+	}
 	cpuBoot(emu);
 
 	state.brk = -1;
@@ -501,19 +509,22 @@ int main(int argc, char *argv[]) {
 
 	if (signal(SIGINT, sigIntHandler) == SIG_ERR) {
 		fprintf(stderr, "Error setting signal handler.\n");
-		return 1;
+		exitCode = 1;
+		goto cleanup;
 	}
 
 	rl_attempted_completion_function = commandCompletion;
 #else
 	if (argc < 1) {
 		fprintf(stderr, "Must provide a ROM argument.\n");
-		return 1;
+		exitCode = 1;
+		goto cleanup;
 	}
 	int fail = readROM(emu, argv[0]);
 	if (fail) {
 		fprintf(stderr, "Error loading ROM.\n");
-		return 1;
+		exitCode = 1;
+		goto cleanup;
 	} else {
 		state.hasRom = true;
 		state.running = true;
@@ -526,18 +537,19 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	SDL_Window *window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED,
+	window = SDL_CreateWindow("CHIP-8", SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED, PIXEL_SCALE * SCREEN_WIDTH,
 		PIXEL_SCALE * SCREEN_HEIGHT, 0);
 	if (window == NULL) {
 		fprintf(stderr, "Window creation failed: %s\n", SDL_GetError());
 		return 1;
 	}
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1,
-		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED
+		| SDL_RENDERER_PRESENTVSYNC);
 	if (renderer == NULL) {
 		fprintf(stderr, "Renderer failed: %s\n", SDL_GetError());
-		return 1;
+		exitCode = 1;
+		goto cleanup;
 	}
 
 	SDL_RenderClear(renderer);
@@ -546,8 +558,6 @@ int main(int argc, char *argv[]) {
 	double lasttime = 0;
 	// get the time to compare to with deltatime
 	deltatime(&lasttime);
-
-	int exitCode = 0;
 
 	while (true) {
 		if (state.running) {
@@ -663,6 +673,8 @@ int main(int argc, char *argv[]) {
 		SDL_RenderPresent(renderer);
 	}
 
+cleanup:
+	free(emu);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
