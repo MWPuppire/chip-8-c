@@ -36,10 +36,8 @@ int c8_cpuStep(c8_state_t *state) {
 }
 
 c8_status_t c8_emulate(c8_state_t *state, double dt) {
-	if (state->awaitingKey != -1) {
-		return C8_AWAITING_KEY;
-	}
-	state->cycleDiff += dt * C8_CLOCK_SPEED;
+	// Timers still tick while awaiting key input,
+	// but don't execute any more instructions.
 	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
@@ -47,6 +45,10 @@ c8_status_t c8_emulate(c8_state_t *state, double dt) {
 	state->soundTimer -= timerDiff > state->soundTimer
 		? state->soundTimer : timerDiff;
 	state->timerDiff -= timerDiff;
+	if (state->awaitingKey != -1) {
+		return C8_AWAITING_KEY;
+	}
+	state->cycleDiff += dt * C8_CLOCK_SPEED;
 
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = c8_cpuStep(state);
@@ -58,10 +60,6 @@ c8_status_t c8_emulate(c8_state_t *state, double dt) {
 }
 
 c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int breakpoint) {
-	if (state->awaitingKey != -1) {
-		return C8_AWAITING_KEY;
-	}
-	state->cycleDiff += dt * C8_CLOCK_SPEED;
 	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
@@ -69,6 +67,10 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int breakpoint) {
 	state->soundTimer -= timerDiff > state->soundTimer
 		? state->soundTimer : timerDiff;
 	state->timerDiff -= timerDiff;
+	if (state->awaitingKey != -1) {
+		return C8_AWAITING_KEY;
+	}
+	state->cycleDiff += dt * C8_CLOCK_SPEED;
 
 	while (state->cycleDiff > 0) {
 		int cyclesTaken = c8_cpuStep(state);

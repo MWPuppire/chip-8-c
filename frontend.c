@@ -542,7 +542,7 @@ int main(int argc, char *argv[]) {
 #endif
 
 	SDL_SetMainReady();
-	if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
+	if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) < 0) {
 		fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
 		return 1;
 	}
@@ -570,7 +570,7 @@ int main(int argc, char *argv[]) {
 	deltatime(&lasttime);
 
 	while (true) {
-		if (state.running) {
+		if (state.running == RUNNING) {
 			bool quit = false;
 			SDL_Event e;
 			while (SDL_PollEvent(&e)) {
@@ -580,6 +580,13 @@ int main(int argc, char *argv[]) {
 					break;
 				case SDL_KEYDOWN:
 					switch (e.key.keysym.sym) {
+					case SDLK_ESCAPE:
+#ifdef DEBUG_REPL
+						state.running = PAUSED;
+#else
+						quit = true;
+#endif
+						break;
 					case SDLK_1: c8_pressKey(emu, 0x1); break;
 					case SDLK_2: c8_pressKey(emu, 0x2); break;
 					case SDLK_3: c8_pressKey(emu, 0x3); break;
@@ -625,7 +632,7 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			if (quit) {
+			if (quit || state.running == PAUSED) {
 				break;
 			}
 
@@ -653,6 +660,7 @@ int main(int argc, char *argv[]) {
 #endif
 			}
 			if (c8_shouldBeep(emu)) {
+				// TODO actually beep
 				printf("Beep\n");
 			}
 #ifdef DEBUG_REPL

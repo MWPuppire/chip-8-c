@@ -24,7 +24,7 @@ int c8_jumpV0(c8_state_t *state, UWord word) {
 	UWord value = word & 0xFFF;
 #ifdef SCHIP
 	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
-	UWord offset = readRegister(state, reg);
+	UWord offset = c8_readRegister(state, reg);
 #else
 	UWord offset = state->registers.v0;
 #endif
