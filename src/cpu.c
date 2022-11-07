@@ -59,7 +59,7 @@ c8_status_t c8_emulate(c8_state_t *state, double dt) {
 	return C8_OK;
 }
 
-c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int breakpoint) {
+c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *breakpoints, int n) {
 	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
@@ -77,8 +77,11 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int breakpoint) {
 		if (cyclesTaken < 0)
 			return C8_UNKNOWN_OP;
 		state->cycleDiff -= cyclesTaken;
-		if (state->registers.pc == breakpoint)
-			return C8_BREAK;
+		for (int i = 0; i < n; i++) {
+			if (state->registers.pc == breakpoints[i]) {
+				return C8_BREAK;
+			}
+		}
 	}
 	return C8_OK;
 }

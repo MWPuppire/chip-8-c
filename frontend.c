@@ -31,37 +31,39 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 24;
+const int COMMAND_COUNT = 25;
 enum command {
 	NO_COMMAND,
 	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
 	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, LOG_INSTRUCTIONS, NEXT, READ,
-	REBOOT, REGS, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT, WRITE
+	REBOOT, REGS, REMBRK, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT,
+	WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
 	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
 	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
-	"log_instructions", "next", "read", "reboot", "regs", "resume",
-	"setreg", "step", "timers", "toggle_key", "quit", "write"
+	"log_instructions", "next", "read", "reboot", "regs", "rembrk",
+	"resume", "setreg", "step", "timers", "toggle_key", "quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
 	"backtrace - display the current call stack",
-	"brk [x] - halt when PC reaches <x>, or remove the breakpoint",
+	"brk <x> - halt when PC reaches <x>",
 	"cycles - display the number of CPU cycles since the last usage",
 	"disassemble [x] - disassemble the instruction at <x> or current",
 	"dump_display <file> - write the display to JPEG <file>",
 	"dump_memory <file> - write memory to binary <file>",
 	"finish - run until the current function returns",
 	"help [cmd] - display this help text or the text for <cmd>",
-	"listbrk - list all breakpoints",
+	"listbrk - list all breakpoints by index",
 	"load_memory <file> - load memory from binary <file>",
 	"load_rom <file> - load a new ROM <file>, clearing memory",
 	"log_instructions [yes|no] - set whether to log executed instructions",
-	"next - run the next instruction without calling a function",
+	"next - print the next instruction without executing it",
 	"read <x> - read byte at memory <x> and display it",
 	"reboot - shut down and reboot CPU, clearing state",
 	"regs - dump all registers",
+	"rembrk <x> - remove the breakpoint at index <x>",
 	"resume - start or continue execution",
 	"setreg <x> <y> - set register <x> to <y>",
 	"step - execute only the next instruction",
@@ -72,8 +74,8 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 };
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
-	-1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2,
-	1, 1, 2, 1, 1, 1, 3, 1, 1, 2, 1, 3
+	-1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 2,
+	1, 1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 3
 };
 #endif
 
@@ -84,8 +86,9 @@ struct {
 	enum execState running;
 	bool logging;
 	bool hasRom;
-	int brk;
 	int cycles;
+	int brk[16];
+	int brkidx;
 } state;
 
 // eight pixels for every CHIP-8 pixel
@@ -292,19 +295,22 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case BACKTRACE: {
-		printf("Not implemented\n");
+		for (int i = emu->callStackPos - 1; i >= 0; i--) {
+			printf("0x%04x\n", emu->callStack[i]);
+		}
 		break;
 	}
 	case BRK: {
-		if (argc < 2) {
-			state.brk = -1;
-			break;
-		}
 		UWord loc;
 		if (parseWord(args[1], &loc) != 0) {
 			break;
 		}
-		state.brk = loc;
+		if (state.brkidx == 16) {
+			printf("Cannot add more breakpoints; "
+				"please remove one\n");
+			break;
+		}
+		state.brk[state.brkidx++] = loc;
 		break;
 	}
 	case CYCLES: {
@@ -354,10 +360,12 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case LISTBRK: {
-		if (state.brk == -1) {
+		if (state.brkidx == 0) {
 			printf("No breakpoints\n");
 		} else {
-			printf("0: %x\n", state.brk);
+			for (int i = 0; i < state.brkidx; i++) {
+				printf("%d: 0x%04x\n", i, state.brk[i]);
+			}
 		}
 		break;
 	}
@@ -394,7 +402,13 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case NEXT: {
-		printf("Not implemented\n");
+		UWord opcode = c8_readMemoryWord(emu, emu->registers.pc);
+		struct c8_instruction inst;
+		if (c8_instructionLookup(&inst, opcode) != 0) {
+			printf("Unknown instruction ahead\n");
+		} else {
+			printf("%s\n", inst.disassembly);
+		}
 		break;
 	}
 	case READ: {
@@ -418,6 +432,21 @@ void executeCommand(const char *cmd) {
 		printf("Address: %04x\n", emu->registers.I);
 		break;
 	}
+	case REMBRK: {
+		UByte idx;
+		if (parseByte(args[1], &idx) != 0) {
+			break;
+		}
+		if (idx >= state.brkidx) {
+			printf("Breakpoint %d not set\n", idx);
+			break;
+		}
+		for (int i = idx; i < state.brkidx; i++) {
+			state.brk[i] = state.brk[i + 1];
+		}
+		state.brkidx--;
+		break;
+	}
 	case RESUME: {
 		if (!state.hasRom) {
 			printf("No ROM loaded.\n");
@@ -427,7 +456,16 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case SETREG: {
-		printf("Not implemented\n");
+		c8_register_t reg;
+		if (c8_registerByName(args[1], &reg) != 0) {
+			printf("Unknown register name\n");
+			break;
+		}
+		UByte byte;
+		if (parseByte(args[2], &byte) != 0) {
+			break;
+		}
+		c8_writeRegister(emu, reg, byte);
 		break;
 	}
 	case STEP: {
@@ -506,7 +544,7 @@ int main(int argc, char *argv[]) {
 	}
 	c8_cpuBoot(emu);
 
-	state.brk = -1;
+	state.brkidx = 0;
 
 #ifdef DEBUG_REPL
 	if (argc > 0) {
@@ -638,7 +676,7 @@ int main(int argc, char *argv[]) {
 
 			double dt = deltatime(&lasttime);
 			int startCycles = emu->cycleDiff + dt * C8_CLOCK_SPEED;
-			c8_status_t status = c8_emulateUntil(emu, dt, state.brk);
+			c8_status_t status = c8_emulateUntil(emu, dt, state.brk, state.brkidx);
 			int endCycles = emu->cycleDiff;
 			state.cycles += startCycles - endCycles;
 			if (status == C8_BREAK) {
