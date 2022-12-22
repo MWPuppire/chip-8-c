@@ -27,8 +27,8 @@ void c8_writeMemoryByte(c8_state_t *state, UWord position, UByte value) {
 }
 
 void c8_writeMemoryWord(c8_state_t *state, UWord position, UWord value) {
-	state->memory[position] = value & 0xFF;
-	state->memory[position + 1] = (value >> 8) & 0xFF;
+	state->memory[position + 1] = value & 0xFF;
+	state->memory[position] = (value >> 8) & 0xFF;
 }
 
 void c8_clearMemory(c8_state_t *state) {

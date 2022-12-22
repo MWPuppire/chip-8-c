@@ -91,8 +91,11 @@ struct {
 	int brkidx;
 } state;
 
-// eight pixels for every CHIP-8 pixel
-const int PIXEL_SCALE = 8;
+#ifndef PIXEL_SCALE
+// default to eight pixels for every CHIP-8 pixel
+// completely arbitrary, but it should work well enough
+#define PIXEL_SCALE 8
+#endif
 
 unsigned char *readfile(const char *name, size_t *size) {
 	FILE *f = fopen(name, "rb");

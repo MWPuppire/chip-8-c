@@ -1,4 +1,0 @@
-Have easy support to write a custom backend
-Allegro, Cairo, Mesa 3D, SFML, SIGIL, SDL
-ncurses maybe?
-also allow easy debugging (if the implementation has it)

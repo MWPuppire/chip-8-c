@@ -1,7 +1,7 @@
 .PHONY: all clean distclean
 
 CC = gcc
-CFLAGS = -I include -I ext/include -Wall -Wextra -I /opt/homebrew/include -Werror
+CFLAGS = -I include -I ext/include -Wall -Wextra -I /opt/homebrew/include -Werror -O2
 
 SRCS = $(wildcard src/*.c) $(wildcard src/instructions/*.c )
 OBJS = $(SRCS:.c=.o)

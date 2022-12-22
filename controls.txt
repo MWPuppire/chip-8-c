@@ -13,4 +13,5 @@ Special controls
 	rewind, slow motion, fast forward - configurable speeds
 	step backward, step forward - exactly one instruction
 	screenshot, record video
-	debug mode
+	debug console
+	memory viewer

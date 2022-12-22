@@ -53,9 +53,5 @@ int c8_addToI(c8_state_t *state, UWord word) {
 	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UByte value = c8_readRegister(state, reg);
 	state->registers.I += value;
-	if (state->registers.I > 0xFFF)
-		state->registers.vF = 1;
-	else
-		state->registers.vF = 0;
 	return 0;
 }
