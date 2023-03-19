@@ -3,7 +3,7 @@
 
 UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
 	UByte pos = x / 8 + y * 8;
-#ifdef NO_EXACT_BYTE
+#ifdef C8_NO_EXACT_BYTE
 	pos &= 256;
 #endif
 	UByte byte = 1 << (x & 7);

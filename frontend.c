@@ -15,7 +15,6 @@
 #include <chip8.h>
 #include <delta.h>
 
-#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
 #ifdef DEBUG_REPL
@@ -31,19 +30,18 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 25;
+const int COMMAND_COUNT = 24;
 enum command {
 	NO_COMMAND,
 	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
-	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, LOG_INSTRUCTIONS, NEXT, READ,
-	REBOOT, REGS, REMBRK, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT,
-	WRITE
+	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, NEXT, READ, REBOOT, REGS, REMBRK,
+	RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT, WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
 	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
 	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
-	"log_instructions", "next", "read", "reboot", "regs", "rembrk",
-	"resume", "setreg", "step", "timers", "toggle_key", "quit", "write"
+	"next", "read", "reboot", "regs", "rembrk", "resume", "setreg", "step",
+	"timers", "toggle_key", "quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
@@ -58,7 +56,6 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"listbrk - list all breakpoints by index",
 	"load_memory <file> - load memory from binary <file>",
 	"load_rom <file> - load a new ROM <file>, clearing memory",
-	"log_instructions [yes|no] - set whether to log executed instructions",
 	"next - print the next instruction without executing it",
 	"read <x> - read byte at memory <x> and display it",
 	"reboot - shut down and reboot CPU, clearing state",
@@ -75,7 +72,7 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
 	-1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 2,
-	1, 1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 3
+	1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 3
 };
 #endif
 
@@ -84,17 +81,20 @@ enum execState { PAUSED = 0, RUNNING = 1 };
 struct {
 	c8_state_t *state;
 	enum execState running;
-	bool logging;
 	bool hasRom;
 	int cycles;
 	int brk[16];
 	int brkidx;
+	double lasttime;
+#ifdef DEBUG_REPL
+	SDL_mutex *mutex;
+#endif
 } state;
 
 #ifndef PIXEL_SCALE
 // default to eight pixels for every CHIP-8 pixel
 // completely arbitrary, but it should work well enough
-#define PIXEL_SCALE 8
+#	define PIXEL_SCALE 8
 #endif
 
 unsigned char *readfile(const char *name, size_t *size) {
@@ -167,8 +167,8 @@ int dumpDisplay(c8_state_t *state, const char *file) {
 
 void sigIntHandler(int signal) {
 	assert(signal == SIGINT);
-	if (state.running) {
-		state.running = 0;
+	if (state.running == RUNNING) {
+		state.running = PAUSED;
 		printf("(To exit, press CTRL+C again or run `quit`)\n");
 		return;
 	}
@@ -389,21 +389,6 @@ void executeCommand(const char *cmd) {
 			state.hasRom = true;
 		break;
 	}
-	case LOG_INSTRUCTIONS: {
-		if (argc > 1) {
-			const char *arg = args[1];
-			if (strncmpcase(arg, "yes", 3) == 0) {
-				state.logging = true;
-			} else if (strncmpcase(arg, "no", 2) == 0) {
-				state.logging = false;
-			} else {
-				printf("Must provide yes or no.\n");
-			}
-		} else {
-			state.logging = !state.logging;
-		}
-		break;
-	}
 	case NEXT: {
 		UWord opcode = c8_readMemoryWord(emu, emu->registers.pc);
 		struct c8_instruction inst;
@@ -530,6 +515,32 @@ command_cleanup:
 	free(base);
 	free(args);
 }
+
+int debugRepl(void *data) {
+	(void) data;
+	while (true) {
+		bool wasRunning = state.running == RUNNING;
+		char *buffer = readline("> ");
+		if (!buffer)
+			continue;
+		if (strlen(buffer) == 0) {
+			free(buffer);
+			continue;
+		}
+		add_history(buffer);
+		if (SDL_LockMutex(state.mutex) == -1) {
+			fprintf(stderr, "Error running command");
+			free(buffer);
+			continue;
+		}
+		executeCommand(buffer);
+		SDL_UnlockMutex(state.mutex);
+		free(buffer);
+		if (state.running && !wasRunning) {
+			deltatime(&state.lasttime);
+		}
+	}
+}
 #endif
 
 int main(int argc, char *argv[]) {
@@ -550,6 +561,8 @@ int main(int argc, char *argv[]) {
 	state.brkidx = 0;
 
 #ifdef DEBUG_REPL
+	state.mutex = SDL_CreateMutex();
+
 	if (argc > 0) {
 		int fail = readROM(emu, argv[0]);
 		if (fail)
@@ -578,7 +591,7 @@ int main(int argc, char *argv[]) {
 		goto cleanup;
 	} else {
 		state.hasRom = true;
-		state.running = true;
+		state.running = RUNNING;
 	}
 #endif
 
@@ -606,12 +619,18 @@ int main(int argc, char *argv[]) {
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
 
-	double lasttime = 0;
+#ifdef DEBUG_REPL
+	SDL_Thread *debugThread = SDL_CreateThread(debugRepl, "debug", &state);
+	SDL_DetachThread(debugThread);
+#endif
+
 	// get the time to compare to with deltatime
-	deltatime(&lasttime);
+	deltatime(&state.lasttime);
 
 	while (true) {
-		if (state.running == RUNNING) {
+#ifdef DEBUG_REPL
+		if (SDL_TryLockMutex(state.mutex) == 0) {
+#endif
 			bool quit = false;
 			SDL_Event e;
 			while (SDL_PollEvent(&e)) {
@@ -673,70 +692,74 @@ int main(int argc, char *argv[]) {
 					break;
 				}
 			}
-			if (quit || state.running == PAUSED) {
-				break;
-			}
-
-			double dt = deltatime(&lasttime);
-			int startCycles = emu->cycleDiff + dt * C8_CLOCK_SPEED;
-			c8_status_t status = c8_emulateUntil(emu, dt, state.brk, state.brkidx);
-			int endCycles = emu->cycleDiff;
-			state.cycles += startCycles - endCycles;
-			if (status == C8_BREAK) {
-				state.running = PAUSED;
-				printf("Breakpoint reached; pausing\n");
-				continue;
-			} else if (status == C8_UNKNOWN_OP) {
-				UWord pc = emu->registers.pc;
-				printf("Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
-				const char *disassembly = c8_disassemble(emu, pc);
-				if (disassembly != NULL)
-					printf("%s\n", disassembly);
+			if (quit) {
 #ifdef DEBUG_REPL
-				state.running = PAUSED;
-				continue;
+				SDL_UnlockMutex(state.mutex);
+#endif
+				break;
+			} else if (state.running == RUNNING) {
+				double dt = deltatime(&state.lasttime);
+				int startCycles = emu->cycleDiff + dt * C8_CLOCK_SPEED;
+				c8_status_t status = c8_emulateUntil(emu, dt, state.brk, state.brkidx);
+				int endCycles = emu->cycleDiff;
+				state.cycles += startCycles - endCycles;
+				if (status == C8_BREAK) {
+					state.running = PAUSED;
+					printf("Breakpoint reached; pausing\n");
+#ifdef DEBUG_REPL
+					SDL_UnlockMutex(state.mutex);
+#endif
+					continue;
+				} else if (status == C8_UNKNOWN_OP) {
+					UWord pc = emu->registers.pc;
+					fprintf(stderr, "Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
+					const char *disassembly = c8_disassemble(emu, pc);
+					if (disassembly != NULL)
+						printf("%s\n", disassembly);
+#ifdef DEBUG_REPL
+					state.running = PAUSED;
+					SDL_UnlockMutex(state.mutex);
+					continue;
 #else
-				exitCode = 1;
-				break;
+					exitCode = 1;
+					break;
 #endif
+				}
+				if (c8_shouldBeep(emu)) {
+					// TODO actually beep
+					printf("Beep\n");
+				}
 			}
-			if (c8_shouldBeep(emu)) {
-				// TODO actually beep
-				printf("Beep\n");
+
+			for (UByte x = 0; x < C8_SCREEN_WIDTH; x++) {
+				for (UByte y = 0; y < C8_SCREEN_HEIGHT; y++) {
+					UByte pixelSet = c8_readFromScreen(emu, x, y);
+					Uint8 color = pixelSet ? 0xFF : 0x00;
+					SDL_SetRenderDrawColor(renderer, color, color,
+						color, SDL_ALPHA_OPAQUE);
+					SDL_Rect rect = {
+						.x = (int) x * PIXEL_SCALE,
+						.y = (int) y * PIXEL_SCALE,
+						.w = PIXEL_SCALE, .h = PIXEL_SCALE,
+					};
+					SDL_RenderFillRect(renderer, &rect);
+				}
 			}
+			SDL_RenderPresent(renderer);
+
 #ifdef DEBUG_REPL
-		} else {
-			char *buffer = readline("> ");
-			if (!buffer)
-				continue;
-			add_history(buffer);
-
-			executeCommand(buffer);
-			free(buffer);
-			if (state.running)
-				deltatime(&lasttime);
+			SDL_UnlockMutex(state.mutex);
+		}
 #endif
-		}
-
-		for (UByte x = 0; x < C8_SCREEN_WIDTH; x++) {
-			for (UByte y = 0; y < C8_SCREEN_HEIGHT; y++) {
-				UByte pixelSet = c8_readFromScreen(emu, x, y);
-				Uint8 color = pixelSet ? 0xFF : 0x00;
-				SDL_SetRenderDrawColor(renderer, color, color,
-					color, SDL_ALPHA_OPAQUE);
-				SDL_Rect rect = {
-					.x = (int) x * PIXEL_SCALE,
-					.y = (int) y * PIXEL_SCALE,
-					.w = PIXEL_SCALE, .h = PIXEL_SCALE,
-				};
-				SDL_RenderFillRect(renderer, &rect);
-			}
-		}
-		SDL_RenderPresent(renderer);
+		SDL_Delay(1);
 	}
 
 cleanup:
 	free(emu);
+#ifdef DEBUG_REPL
+	SDL_UnlockMutex(state.mutex);
+	SDL_DestroyMutex(state.mutex);
+#endif
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();

@@ -15,9 +15,9 @@ inline static double deltatime(double *lasttime) {
 }
 
 #else
-#ifndef DELTA_TIME_LOW_RES
-#define DELTA_TIME_LOW_RES
-#endif
+#	ifndef DELTA_TIME_LOW_RES
+#		define DELTA_TIME_LOW_RES
+#	endif
 
 inline static double deltatime(double *lasttime) {
 	clock_t val = clock();
