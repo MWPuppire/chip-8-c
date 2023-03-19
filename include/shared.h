@@ -13,11 +13,7 @@
 #define C8_ADDRESSABLE_MEM (1 << 12)
 
 #ifndef C8_CLOCK_SPEED
-#	ifdef SCHIP
-#		define C8_CLOCK_SPEED 1000
-#	else
-#		define C8_CLOCK_SPEED 500
-#	endif
+#	define C8_CLOCK_SPEED 500
 #endif
 
 #ifndef C8_TIMER_SPEED

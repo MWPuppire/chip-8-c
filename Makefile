@@ -8,8 +8,8 @@ OBJS = $(SRCS:.c=.o)
 
 all: bin/chip8 bin/chip8_debug
 
-*/.c.o:
-	$(CC) $(CFLAGS) -c $<
+%.o: %.c Makefile include/*.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
 bin/libchip8.dylib: Makefile $(OBJS) | bin
 	$(CC) -fPIC -shared $(OBJS) -o $@

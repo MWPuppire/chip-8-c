@@ -2,12 +2,14 @@
 #include <screen.h>
 
 UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
+	if (x >= C8_SCREEN_WIDTH || y >= C8_SCREEN_HEIGHT)
+		return 0;
 	UByte pos = x / 8 + y * 8;
 #ifdef C8_NO_EXACT_BYTE
 	pos &= 256;
 #endif
 	UByte byte = 1 << (x & 7);
-	UByte toggle = state->screen[pos] & byte ? 1 : 0;
+	UByte toggle = (state->screen[pos] & byte) > 0;
 	state->screen[pos] ^= byte;
 	return toggle;
 }
