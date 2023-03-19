@@ -1,7 +1,6 @@
-#include <shared.h>
+#include <shared-internal.h>
 #include <registers.h>
 #include <memory.h>
-#include <font.h>
 #include <instructions.h>
 
 int c8_setRegister(c8_state_t *state, UWord word) {

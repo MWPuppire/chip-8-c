@@ -1,4 +1,6 @@
-#include <shared.h>
+#include <string.h>
+
+#include <shared-internal.h>
 #include <registers.h>
 
 const char *C8_REGISTER_NAMES[C8_REGISTER_COUNT] = {
@@ -52,7 +54,7 @@ void c8_resetRegisters(c8_state_t *state) {
 	state->registers.pc = 0x0200;
 }
 
-UByte c8_readRegister(c8_state_t *state, c8_register_t reg) {
+UWord c8_readRegister(c8_state_t *state, c8_register_t reg) {
 	switch (reg) {
 	case C8_REG_0:  return state->registers.v0;
 	case C8_REG_1:  return state->registers.v1;
@@ -76,7 +78,7 @@ UByte c8_readRegister(c8_state_t *state, c8_register_t reg) {
 	}
 }
 
-void c8_writeRegister(c8_state_t *state, c8_register_t reg, UByte value) {
+void c8_writeRegister(c8_state_t *state, c8_register_t reg, UWord value) {
 	switch (reg) {
 	case C8_REG_0:  state->registers.v0 = value; break;
 	case C8_REG_1:  state->registers.v1 = value; break;

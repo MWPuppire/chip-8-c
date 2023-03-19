@@ -1,8 +1,7 @@
-#include <shared.h>
-#include <registers.h>
+#include <string.h>
 
-#include <stdlib.h>
-#include <stdbool.h>
+#include <shared-internal.h>
+#include <registers.h>
 
 void c8_clearInput(c8_state_t *state) {
 	memset(state->input, 0, sizeof(bool) * 16);

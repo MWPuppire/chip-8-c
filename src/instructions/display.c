@@ -1,4 +1,4 @@
-#include <shared.h>
+#include <shared-internal.h>
 #include <memory.h>
 #include <registers.h>
 #include <screen.h>

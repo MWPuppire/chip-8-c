@@ -1,5 +1,4 @@
-#include <shared.h>
-#include <call.h>
+#include <shared-internal.h>
 #include <instructions.h>
 #include <registers.h>
 
@@ -11,12 +10,15 @@ int c8_gotoInst(c8_state_t *state, UWord word) {
 
 int c8_callInst(c8_state_t *state, UWord word) {
 	UWord pos = word & 0xFFF;
-	c8_callRoutine(state, pos);
+	if (state->callStackPos < C8_STACK_SIZE)
+		state->callStack[state->callStackPos++] = state->registers.pc;
+	state->registers.pc = pos;
 	return 0;
 }
 
 int c8_returnInst(c8_state_t *state, UWord UNUSED(word)) {
-	c8_returnRoutine(state);
+	if (state->callStackPos != 0)
+		state->registers.pc = state->callStack[--state->callStackPos];
 	return 0;
 }
 

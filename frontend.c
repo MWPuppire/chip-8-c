@@ -12,6 +12,7 @@
 #	include "tiny_jpeg.h"
 #endif
 
+#include <shared-internal.h>
 #include <chip8.h>
 #include <delta.h>
 
@@ -551,7 +552,7 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	c8_state_t *emu = state.state = malloc(sizeof(c8_state_t));
+	c8_state_t *emu = state.state = c8_newState();
 	if (emu == NULL) {
 		fprintf(stderr, "Could not allocate memory.\n");
 		return 1;

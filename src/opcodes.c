@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <shared.h>
+#include <shared-internal.h>
 #include <memory.h>
 #include <opcodes.h>
 #include <instructions.h>

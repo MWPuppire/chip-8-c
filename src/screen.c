@@ -1,4 +1,6 @@
-#include <shared.h>
+#include <string.h>
+
+#include <shared-internal.h>
 #include <screen.h>
 
 static inline UByte c8_writeToScreenLowres(c8_state_t *state, UByte x, UByte y) {
