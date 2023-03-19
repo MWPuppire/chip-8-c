@@ -28,3 +28,16 @@ int c8_randRegister(c8_state_t *state, UWord word) {
 int c8_nop(c8_state_t *UNUSED(state), UWord UNUSED(word)) {
 	return 0;
 }
+
+int c8_getKey(c8_state_t *state, UWord word) {
+	int reg = (int) ((word >> 8) & 0xF);
+	state->awaitingKey = reg;
+	return 0;
+}
+
+#if defined(SCHIP) || defined(XO_CHIP)
+int c8_exitInst(c8_state_t *state, UWord UNUSED(word)) {
+	state->exited = true;
+	return 0;
+}
+#endif

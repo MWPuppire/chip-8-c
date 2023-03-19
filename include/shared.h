@@ -20,8 +20,13 @@
 #	define C8_TIMER_SPEED 60
 #endif
 
-#define C8_SCREEN_WIDTH  64
-#define C8_SCREEN_HEIGHT 32
+#if defined(SCHIP) || defined(XO_CHIP)
+#	define C8_SCREEN_WIDTH  128
+#	define C8_SCREEN_HEIGHT 64
+#else
+#	define C8_SCREEN_WIDTH 64
+#	define C8_SCREEN_HEIGHT 32
+#endif
 #define C8_SCREEN_MEM    (C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT / 8)
 
 #define C8_STACK_SIZE 16
@@ -45,7 +50,8 @@
 #endif
 
 typedef enum {
-	C8_OK, C8_AWAITING_KEY, C8_BREAK, C8_UNKNOWN_OP, C8_INVALID_FILE
+	C8_OK, C8_AWAITING_KEY, C8_BREAK, C8_UNKNOWN_OP, C8_INVALID_FILE,
+	C8_EXITED
 } c8_status_t;
 
 typedef struct {
@@ -80,4 +86,9 @@ typedef struct {
 	int callStackPos;
 	int awaitingKey;
 	double timerDiff;
+	bool exited;
+#if defined(SCHIP) || defined(XO_CHIP)
+	UByte registerPersistent[16];
+	bool hires;
+#endif
 } c8_state_t;

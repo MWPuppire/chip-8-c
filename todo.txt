@@ -1,7 +1,8 @@
 TODO:	implement `finish` command
 	put debug console in-window (`~` to bring it up or something)
+		(not really as needed with better debugger in app)
 	add an in-app memory viewer (probably would make a new window)
 	fix test "key not halting"
 	see why test suite skips opening screen
-	use proper clipping for CHIP-8 mode
 	add display wait
+	implement Super CHIP-8 and XO-CHIP better

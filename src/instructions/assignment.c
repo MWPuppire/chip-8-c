@@ -57,3 +57,23 @@ int c8_spriteAddrI(c8_state_t *state, UWord word) {
 	state->registers.I = C8_SPRITE_ADDR[value];
 	return 0;
 }
+
+#if defined(SCHIP) || defined(XO_CHIP)
+int c8_persistentDump(c8_state_t *state, UWord word) {
+	c8_register_t max = (c8_register_t) ((word >> 8) & 0xF) + 1;
+	for (c8_register_t i = C8_REG_0; i < max; i++) {
+		UByte reg = c8_readRegister(state, i);
+		state->registerPersistent[i] = reg;
+	}
+	return 0;
+}
+
+int c8_persistentLoad(c8_state_t *state, UWord word) {
+	c8_register_t max = (c8_register_t) ((word >> 8) & 0xF) + 1;
+	for (c8_register_t i = C8_REG_0; i < max; i++) {
+		UByte byte = state->registerPersistent[i];
+		c8_writeRegister(state, i, byte);
+	}
+	return 0;
+}
+#endif

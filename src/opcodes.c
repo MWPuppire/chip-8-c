@@ -18,11 +18,13 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->disassembly = "(void) 0;";
 			inst->execute = c8_nop;
 			inst->cycles = 1;
-#ifdef SCHIP
-		} else if ((word & 0x00F0) == 0x00B0) {
-			inst->disassembly = "scroll_up(N);";
+#if defined(SCHIP) || defined(XO_CHIP)
 		} else if ((word & 0x00F0) == 0x00C0) {
 			inst->disassembly = "scroll_down(N);";
+#endif
+#ifdef XO_CHIP
+		} else if ((word & 0x00F0) == 0x00D0) {
+			inst->disassembly = "scroll_up(N);";
 #endif
 		} else if (word == 0x00E0) {
 			inst->disassembly = "display_clear();";
@@ -32,17 +34,23 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->disassembly = "return;";
 			inst->execute = c8_returnInst;
 			inst->cycles = 1;
-#ifdef SCHIP
+#if defined(SCHIP) || defined(XO_CHIP)
 		} else if (word == 0x00FB) {
 			inst->disassembly = "scroll_right();";
 		} else if (word == 0x00FC) {
 			inst->disassembly = "scroll_left();";
 		} else if (word == 0x00FD) {
 			inst->disassembly = "exit();";
+			inst->execute = c8_exitInst;
+			inst->cycles = 1;
 		} else if (word == 0x00FE) {
 			inst->disassembly = "low_res();";
+			inst->execute = c8_lowres;
+			inst->cycles = 1;
 		} else if (word == 0x00FF) {
 			inst->disassembly = "high_res();";
+			inst->execute = c8_highres;
+			inst->cycles = 1;
 #endif
 		} else {
 			inst->disassembly = "call_routine(0xNNN);";
@@ -68,11 +76,25 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		inst->execute = c8_ifNotEquals;
 		inst->cycles = 1;
 		break;
+#ifdef XO_CHIP
+	case 0x5000:
+		if ((word & 0xF) == 0x0) {
+			inst->disassembly = "if (Vx == Vy) goto next;";
+			inst->execute = c8_ifEqualsReg;
+			inst->cycles = 1;
+		} else if ((word & 0xF) == 0x2) {
+			inst->disassembly = "reg_dump(Vx, Vy, &I);";
+		} else if ((word & 0xF) == 0x3) {
+			inst->disassembly = "reg_load(Vx, Vy, &I);";
+		}
+		break;
+#else
 	case 0x5000:
 		inst->disassembly = "if (Vx == Vy) goto next;";
 		inst->execute = c8_ifEqualsReg;
 		inst->cycles = 1;
 		break;
+#endif
 	case 0x6000:
 		inst->disassembly = "Vx = NN;";
 		inst->execute = c8_setRegister;
@@ -170,6 +192,17 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		break;
 	case 0xF000:
 		switch (word & 0xFF) {
+#ifdef XO_CHIP
+		case 0x00:
+			inst->disassembly = "I = read_and_skip_next_word();";
+			break;
+		case 0x01:
+			inst->disassembly = "set_drawing_plane(N);";
+			break;
+		case 0x02:
+			inst->disassembly = "load_audio_pattern(I);";
+			break;
+#endif
 		case 0x07:
 			inst->disassembly = "Vx = get_delay();";
 			inst->execute = c8_getDelay;
@@ -200,7 +233,7 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->execute = c8_spriteAddrI;
 			inst->cycles = 1;
 			break;
-#ifdef SCHIP
+#if defined(SCHIP) || defined(XO_CHIP)
 		case 0x30:
 			inst->disassembly = "I = digit_addr[Vx];";
 			break;
@@ -210,22 +243,31 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->execute = c8_bcd;
 			inst->cycles = 1;
 			break;
+#ifdef XO_CHIP
+		case 0x3A:
+			inst->disassembly = "set_audio_hertz(Vx)";
+			break;
+#endif
 		case 0x55:
-			inst->disassembly = "reg_dump(Vx, &I);";
+			inst->disassembly = "reg_dump(V0, Vx, &I);";
 			inst->execute = c8_regDump;
 			inst->cycles = 1;
 			break;
 		case 0x65:
-			inst->disassembly = "reg_load(Vx, &I);";
+			inst->disassembly = "reg_load(V0, Vx, &I);";
 			inst->execute = c8_regLoad;
 			inst->cycles = 1;
 			break;
-#ifdef SCHIP
+#if defined(SCHIP) || defined(XO_CHIP)
 		case 0x75:
 			inst->disassembly = "persist_dump(Vx);";
+			inst->execute = c8_persistentDump;
+			inst->cycles = 1;
 			break;
 		case 0x85:
 			inst->disassembly = "persist_load(Vx);";
+			inst->execute = c8_persistentLoad;
+			inst->cycles = 1;
 			break;
 #endif
 		}

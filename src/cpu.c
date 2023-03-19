@@ -14,6 +14,7 @@ void c8_seedRandom(c8_state_t *state, UWord seed) {
 }
 
 void c8_cpuBoot(c8_state_t *state) {
+	state->exited = false;
 	c8_clearMemory(state);
 	c8_clearScreen(state);
 	c8_clearInput(state);
@@ -23,6 +24,9 @@ void c8_cpuBoot(c8_state_t *state) {
 }
 
 int c8_cpuStep(c8_state_t *state) {
+	if (state->exited) {
+		return -1;
+	}
 	UWord opcode = c8_readMemoryWord(state, state->registers.pc);
 	struct c8_instruction inst = { 0 };
 	c8_instructionLookup(&inst, opcode);
@@ -36,6 +40,10 @@ int c8_cpuStep(c8_state_t *state) {
 }
 
 c8_status_t c8_emulate(c8_state_t *state, double dt) {
+	if (state->exited) {
+		return C8_EXITED;
+	}
+
 	// Timers still tick while awaiting key input,
 	// but don't execute any more instructions.
 	state->timerDiff += dt * C8_TIMER_SPEED;
@@ -60,6 +68,10 @@ c8_status_t c8_emulate(c8_state_t *state, double dt) {
 }
 
 c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *breakpoints, int n) {
+	if (state->exited) {
+		return C8_EXITED;
+	}
+
 	state->timerDiff += dt * C8_TIMER_SPEED;
 	UByte timerDiff = (UByte) state->timerDiff;
 	state->delayTimer -= timerDiff > state->delayTimer
@@ -87,5 +99,5 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *breakpoints, int 
 }
 
 bool c8_shouldBeep(c8_state_t *state) {
-	return state->soundTimer > 0;
+	return !state->exited && state->soundTimer > 0;
 }

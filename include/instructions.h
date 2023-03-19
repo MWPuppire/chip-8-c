@@ -18,6 +18,16 @@ INSTRUCTION(regDump);
 INSTRUCTION(regLoad);
 INSTRUCTION(moveRegister);
 INSTRUCTION(spriteAddrI);
+#if defined(SCHIP) || defined(XO_CHIP)
+INSTRUCTION(persistentDump);
+INSTRUCTION(persistentLoad);
+// INSTRUCTION(spriteAddrBig);
+#endif
+#ifdef XO_CHIP
+// INSTRUCTION(regDumpY);
+// INSTRUCTION(regLoadY);
+// INSTRUCTION(setIWord);
+#endif
 
 // bitwise.c
 INSTRUCTION(orRegister);
@@ -31,15 +41,23 @@ INSTRUCTION(ifEquals);
 INSTRUCTION(ifNotEquals);
 INSTRUCTION(ifEqualsReg);
 INSTRUCTION(ifNotEqualsReg);
+INSTRUCTION(keyEquals);
+INSTRUCTION(keyNotEquals);
 
 // display.c
 INSTRUCTION(draw);
 INSTRUCTION(displayClear);
-
-// input.c
-INSTRUCTION(keyEquals);
-INSTRUCTION(keyNotEquals);
-INSTRUCTION(getKey);
+#if defined(SCHIP) || defined(XO_CHIP)
+INSTRUCTION(lowres);
+INSTRUCTION(highres);
+// INSTRUCTION(scrollDown);
+// INSTRUCTION(scrollRight);
+// INSTRUCTION(scrollLeft);
+#endif
+#ifdef XO_CHIP
+// INSTRUCTION(scrollUp);
+// INSTRUCTION(setDrawingPlane);
+#endif
 
 // jumps.c
 INSTRUCTION(gotoInst);
@@ -52,6 +70,14 @@ INSTRUCTION(jumpOffset);
 INSTRUCTION(bcd);
 INSTRUCTION(randRegister);
 INSTRUCTION(nop);
+INSTRUCTION(getKey);
+#if defined(SCHIP) || defined(XO_CHIP)
+INSTRUCTION(exitInst);
+#endif
+#ifdef XO_CHIP
+// INSTRUCTION(loadAudioBuffer);
+// INSTRUCTION(setAudioHertz);
+#endif
 
 // timers.c
 INSTRUCTION(getDelay);
