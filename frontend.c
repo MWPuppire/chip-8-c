@@ -588,7 +588,6 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Could not allocate memory.\n");
 		return 1;
 	}
-	c8_cpuBoot(emu);
 
 	state.brkidx = 0;
 
