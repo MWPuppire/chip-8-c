@@ -4,5 +4,5 @@ TODO:	implement `finish` command
 	add an in-app memory viewer (probably would make a new window)
 	fix test "key not halting"
 	see why test suite skips opening screen
-	add display wait
-	implement Super CHIP-8 and XO-CHIP better
+	add display wait on CHIP-8 mode
+	more fully implement Super CHIP-8 and XO-CHIP instructions

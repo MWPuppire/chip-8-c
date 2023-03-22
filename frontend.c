@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #ifdef DEBUG_REPL
 #	include <ctype.h>
@@ -12,11 +13,28 @@
 #	include "tiny_jpeg.h"
 #endif
 
-#include <shared-internal.h>
 #include <chip8.h>
-#include <delta.h>
 
 #include <SDL2/SDL.h>
+
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+inline static double deltatime(double *lasttime) {
+	struct timespec ts;
+	timespec_get(&ts, TIME_UTC);
+	double time = (double) ts.tv_sec + (double) ts.tv_nsec / 1e9;
+	double diff = time - (lasttime == 0 ? 0.0 : *lasttime);
+	lasttime != 0 && (*lasttime = time);
+	return diff;
+}
+#else
+inline static double deltatime(double *lasttime) {
+	clock_t val = clock();
+	double time = (double) val / CLOCKS_PER_SEC;
+	double diff = time - (lasttime == 0 ? 0.0 : *lasttime);
+	lasttime != 0 && (*lasttime = time);
+	return diff;
+}
+#endif
 
 #ifdef DEBUG_REPL
 int strncmpcase(const char *s1, const char *s2, size_t len) {
@@ -123,19 +141,6 @@ unsigned char *readfile(const char *name, size_t *size) {
 	return str;
 }
 
-int writefile(const char *name, const unsigned char *buf, size_t size) {
-	FILE *f = fopen(name, "wb");
-	if (f == NULL)
-		return 1;
-
-	size_t written = fwrite(buf, 1, size, f);
-	if (written != size)
-		return 1;
-
-	fclose(f);
-	return 0;
-}
-
 int readROM(c8_state_t *state, char *file) {
 	size_t size;
 	unsigned char *rom = readfile(file, &size);
@@ -151,8 +156,27 @@ int readROM(c8_state_t *state, char *file) {
 }
 
 #ifdef DEBUG_REPL
+int writefile(const char *name, const unsigned char *buf, size_t size) {
+	FILE *f = fopen(name, "wb");
+	if (f == NULL)
+		return 1;
+
+	size_t written = fwrite(buf, 1, size, f);
+	if (written != size)
+		return 1;
+
+	fclose(f);
+	return 0;
+}
+
+int dumpMemory(c8_state_t *state, const char *file) {
+	unsigned char data[0x1000];
+	c8_dumpMemory(state, data, 0x1000);
+	return writefile(file, data, 0x1000);
+}
+
 int dumpDisplay(c8_state_t *state, const char *file) {
-	static unsigned char data[4 * C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT] = { 0 };
+	unsigned char data[4 * C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT] = { 0 };
 	for (int x = 0; x < C8_SCREEN_WIDTH; x++) {
 		for (int y = 0; y < C8_SCREEN_HEIGHT; y++) {
 			UByte pixelSet = c8_readFromScreen(state, x, y);
@@ -194,7 +218,8 @@ char *commandGenerator(const char *text, int state) {
 	return NULL;
 }
 
-char **commandCompletion(const char *text, int start, int UNUSED(end)) {
+char **commandCompletion(const char *text, int start, int end) {
+	(void) end;
 	rl_attempted_completion_over = 1;
 	if (start == 0)
 		return rl_completion_matches(text, commandGenerator);
@@ -299,8 +324,10 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case BACKTRACE: {
-		for (int i = emu->callStackPos - 1; i >= 0; i--) {
-			printf("0x%04x\n", emu->callStack[i]);
+		UWord frames[16];
+		size_t frameCount = c8_callStack(emu, frames, 16);
+		for (size_t i = 0; i < frameCount; i++) {
+			printf("0x%04x\n", frames[i]);
 		}
 		break;
 	}
@@ -323,7 +350,7 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case DISASSEMBLE: {
-		UWord pos = emu->registers.pc;
+		UWord pos = c8_readRegister(emu, C8_REG_PC);
 		if (argc > 1) {
 			if (parseWord(args[1], &pos) != 0) {
 				break;
@@ -339,7 +366,7 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case DUMP_MEMORY: {
-		int fail = writefile(args[1], emu->memory, 0x1000);
+		int fail = dumpMemory(emu, args[1]);
 		if (fail)
 			printf("Failed to write to file.\n");
 		break;
@@ -380,7 +407,7 @@ void executeCommand(const char *cmd) {
 			printf("File too small to write as memory.\n");
 			break;
 		}
-		memcpy(emu->memory, buf, 0x1000);
+		c8_loadMemory(emu, buf, 0x1000);
 		break;
 	}
 	case LOAD_ROM: {
@@ -391,7 +418,8 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case NEXT: {
-		UWord opcode = c8_readMemoryWord(emu, emu->registers.pc);
+		UWord pc = c8_readRegister(emu, C8_REG_PC);
+		UWord opcode = c8_readMemoryWord(emu, pc);
 		struct c8_instruction inst;
 		if (c8_instructionLookup(&inst, opcode) != 0) {
 			printf("Unknown instruction ahead\n");
@@ -417,8 +445,8 @@ void executeCommand(const char *cmd) {
 		for (c8_register_t i = 0; i < C8_REG_8; i++)
 			printf("v%x: %02x\tv%x: %02x\n", i, c8_readRegister(emu, i),
 				i + 8, c8_readRegister(emu, i + 8));
-		printf("Program Counter: %04x\n", emu->registers.pc);
-		printf("Address: %04x\n", emu->registers.I);
+		printf("Program Counter: %04x\n", c8_readRegister(emu, C8_REG_PC));
+		printf("Address: %04x\n", c8_readRegister(emu, C8_REG_I));
 		break;
 	}
 	case REMBRK: {
@@ -462,21 +490,24 @@ void executeCommand(const char *cmd) {
 			printf("No ROM loaded.\n");
 			break;
 		}
-		int cycles = c8_cpuStep(emu);
-		if (cycles >= 0) {
-			state.cycles += cycles;
-		} else {
-			UWord pc = emu->registers.pc;
+		int cycles;
+		c8_status_t status = c8_cpuStep(emu, &cycles);
+		if (status == C8_EXITED) {
+			printf("ROM exited via `exit` instruction");
+		} else if (status == C8_UNKNOWN_OP) {
+			UWord pc = c8_readRegister(emu, C8_REG_PC);
 			printf("Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
 			const char *disassembly = c8_disassemble(emu, pc);
 			if (disassembly != NULL)
 				printf("%s\n", disassembly);
+		} else {
+			state.cycles += cycles;
 		}
 		break;
 	}
 	case TIMERS: {
-		printf("Delay timer: %02x\n", emu->delayTimer);
-		printf("Sound timer: %02x\n", emu->soundTimer);
+		printf("Delay timer: %02x\n", c8_delayTimer(emu));
+		printf("Sound timer: %02x\n", c8_soundTimer(emu));
 		break;
 	}
 	case TOGGLE_KEY: {
@@ -700,10 +731,9 @@ int main(int argc, char *argv[]) {
 				break;
 			} else if (state.running == RUNNING) {
 				double dt = deltatime(&state.lasttime);
-				int startCycles = emu->cycleDiff + dt * C8_CLOCK_SPEED;
-				c8_status_t status = c8_emulateUntil(emu, dt, state.brk, state.brkidx);
-				int endCycles = emu->cycleDiff;
-				state.cycles += startCycles - endCycles;
+				int cycles;
+				c8_status_t status = c8_emulateUntil(emu, dt, &cycles, state.brk, state.brkidx);
+				state.cycles += cycles;
 				if (status == C8_BREAK) {
 					state.running = PAUSED;
 					printf("Breakpoint reached; pausing\n");
@@ -712,7 +742,7 @@ int main(int argc, char *argv[]) {
 #endif
 					continue;
 				} else if (status == C8_UNKNOWN_OP) {
-					UWord pc = emu->registers.pc;
+					UWord pc = c8_readRegister(emu, C8_REG_PC);
 					fprintf(stderr, "Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
 					const char *disassembly = c8_disassemble(emu, pc);
 					if (disassembly != NULL)
@@ -725,6 +755,8 @@ int main(int argc, char *argv[]) {
 					exitCode = 1;
 					break;
 #endif
+				} else if (status == C8_EXITED) {
+					printf("ROM exited via `exit` instruction");
 				}
 				if (c8_shouldBeep(emu)) {
 					// TODO actually beep

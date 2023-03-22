@@ -30,21 +30,23 @@ void c8_cpuBoot(c8_state_t *state) {
 	state->awaitingKey = -1;
 }
 
-int c8_cpuStep(c8_state_t *state) {
+c8_status_t c8_cpuStep(c8_state_t *state, int *outCycles) {
 	if (state->exited)
-		return -1;
+		return C8_EXITED;
 	UWord opcode = c8_readMemoryWord(state, state->registers.pc);
 	struct c8_instruction inst = { 0 };
 	c8_instructionLookup(&inst, opcode);
 	if (inst.execute == NULL)
-		return -1;
+		return C8_UNKNOWN_OP;
 	int cycles = inst.cycles;
 	state->registers.pc += 2;
 	int extraCycles = inst.execute(state, opcode);
-	return cycles + extraCycles;
+	if (outCycles != NULL)
+		*outCycles = cycles + extraCycles;
+	return C8_OK;
 }
 
-c8_status_t c8_emulate(c8_state_t *state, double dt) {
+c8_status_t c8_emulate(c8_state_t *state, double dt, int *outCycles) {
 	if (state->exited)
 		return C8_EXITED;
 
@@ -61,16 +63,23 @@ c8_status_t c8_emulate(c8_state_t *state, double dt) {
 		return C8_AWAITING_KEY;
 	state->cycleDiff += dt * C8_CLOCK_SPEED;
 
+	int totalCycles = 0;
 	while (state->cycleDiff > 0) {
-		int cyclesTaken = c8_cpuStep(state);
-		if (cyclesTaken < 0)
-			return C8_UNKNOWN_OP;
+		int cyclesTaken;
+		c8_status_t status = c8_cpuStep(state, &cyclesTaken);
+		if (status != C8_OK) {
+			outCycles != NULL && (*outCycles = totalCycles);
+			return status;
+		}
 		state->cycleDiff -= cyclesTaken;
+		totalCycles += cyclesTaken;
 	}
+	if (outCycles != NULL)
+		*outCycles = totalCycles;
 	return C8_OK;
 }
 
-c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *breakpoints, int n) {
+c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *breakpoints, int n) {
 	if (state->exited)
 		return C8_EXITED;
 
@@ -85,19 +94,46 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *breakpoints, int 
 		return C8_AWAITING_KEY;
 	state->cycleDiff += dt * C8_CLOCK_SPEED;
 
+	int totalCycles = 0;
 	while (state->cycleDiff > 0) {
-		int cyclesTaken = c8_cpuStep(state);
-		if (cyclesTaken < 0)
-			return C8_UNKNOWN_OP;
+		int cyclesTaken;
+		c8_status_t status = c8_cpuStep(state, &cyclesTaken);
+		if (status != C8_OK) {
+			outCycles != NULL && (*outCycles = totalCycles);
+			return status;
+		}
 		state->cycleDiff -= cyclesTaken;
+		totalCycles += cyclesTaken;
 		for (int i = 0; i < n; i++) {
-			if (state->registers.pc == breakpoints[i])
+			if (state->registers.pc == breakpoints[i]) {
+				outCycles != NULL && (*outCycles = totalCycles);
 				return C8_BREAK;
+			}
 		}
 	}
+	if (outCycles != NULL)
+		*outCycles = totalCycles;
 	return C8_OK;
 }
 
 bool c8_shouldBeep(c8_state_t *state) {
 	return !state->exited && state->soundTimer > 0;
+}
+
+UWord c8_delayTimer(c8_state_t *state) {
+	return state->delayTimer;
+}
+UWord c8_soundTimer(c8_state_t *state) {
+	return state->soundTimer;
+}
+
+size_t c8_callStack(c8_state_t *state, UWord *frames, size_t frameSize) {
+	size_t totalFrames = (size_t) state->callStackPos;
+	size_t framesWritten = 0;
+	for (size_t i = totalFrames - 1; i >= 0; i--) {
+		if (framesWritten == frameSize)
+			break;
+		frames[framesWritten++] = state->callStack[i];
+	}
+	return totalFrames;
 }

@@ -21,9 +21,6 @@
 #define C8_STACK_SIZE 16
 
 struct c8_state {
-	double cycleDiff;
-	UByte memory[C8_ADDRESSABLE_MEM];
-	UByte screen[C8_SCREEN_MEM];
 	struct {
 		UByte v0;
 		UByte v1;
@@ -44,17 +41,20 @@ struct c8_state {
 		UWord I;
 		UWord pc;
 	} registers;
+	UWord randomState;
+	UWord callStack[C8_STACK_SIZE];
 	UByte delayTimer;
 	UByte soundTimer;
-	bool input[16];
-	UWord callStack[C8_STACK_SIZE];
-	UWord randomState;
+	UByte memory[C8_ADDRESSABLE_MEM];
+	UByte screen[C8_SCREEN_MEM];
+	double cycleDiff;
+	double timerDiff;
 	int callStackPos;
 	int awaitingKey;
-	double timerDiff;
+	bool input[16];
 	bool exited;
 #if defined(SCHIP) || defined(XO_CHIP)
-	UByte registerPersistent[16];
 	bool hires;
+	UByte registerPersistent[16];
 #endif
 };

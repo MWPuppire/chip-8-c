@@ -70,13 +70,13 @@ c8_status_t c8_loadROM(c8_state_t *state, const unsigned char *rom, size_t size)
 	return C8_OK;
 }
 
-void c8_dumpMemory(c8_state_t *state, void *buf, size_t size) {
+void c8_dumpMemory(c8_state_t *state, unsigned char *buf, size_t size) {
 	if (buf == NULL || size == 0)
 		return;
 	memcpy(buf, state->memory, size);
 }
 
-void c8_loadMemory(c8_state_t *state, void *buf, size_t size) {
+void c8_loadMemory(c8_state_t *state, const unsigned char *buf, size_t size) {
 	if (buf == NULL || size == 0)
 		return;
 	memcpy(state->memory, buf, size);
