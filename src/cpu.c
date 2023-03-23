@@ -8,6 +8,20 @@
 #include <input.h>
 #include <memory.h>
 
+const int C8_VERSION_MAJOR = 0;
+const int C8_VERSION_MINOR = 1;
+const int C8_VERSION_PATCH = 0;
+const char *C8_VERSION_STRING = "0.1.0";
+#ifdef SCHIP
+const enum c8_comp_mode C8_COMPILED_MODE = C8_SUPER_CHIP;
+#elif defined(XO_CHIP)
+const enum c8_comp_mode C8_COMPILED_MODE = C8_XO_CHIP;
+#else
+const enum c8_comp_mode C8_COMPILED_MODE = C8_CHIP_8;
+#endif
+const int C8_SCREEN_WIDTH  = SCREEN_WIDTH;
+const int C8_SCREEN_HEIGHT = SCREEN_HEIGHT;
+
 c8_state_t *c8_newState(void) {
 	c8_state_t *state = (c8_state_t *) malloc(sizeof(c8_state_t));
 	if (state == NULL)

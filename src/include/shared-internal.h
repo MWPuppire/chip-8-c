@@ -16,7 +16,14 @@
 #	define C8_TIMER_SPEED 60
 #endif
 
-#define C8_SCREEN_MEM    (C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT / 8)
+#if defined(SCHIP) || defined(XO_CHIP)
+#	define SCREEN_WIDTH  128
+#	define SCREEN_HEIGTH 64
+#else
+#	define SCREEN_WIDTH  64
+#	define SCREEN_HEIGHT 32
+#endif
+#define C8_SCREEN_MEM    (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
 
 #define C8_STACK_SIZE 16
 

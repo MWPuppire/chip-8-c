@@ -176,7 +176,7 @@ int dumpMemory(c8_state_t *state, const char *file) {
 }
 
 int dumpDisplay(c8_state_t *state, const char *file) {
-	unsigned char data[4 * C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT] = { 0 };
+	unsigned char data[4 * C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT];
 	for (int x = 0; x < C8_SCREEN_WIDTH; x++) {
 		for (int y = 0; y < C8_SCREEN_HEIGHT; y++) {
 			UByte pixelSet = c8_readFromScreen(state, x, y);
