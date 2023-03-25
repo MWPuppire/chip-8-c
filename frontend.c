@@ -49,18 +49,19 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 24;
+const int COMMAND_COUNT = 26;
 enum command {
 	NO_COMMAND,
 	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
-	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, NEXT, READ, REBOOT, REGS, REMBRK,
-	RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT, WRITE
+	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, NEXT, PAUSE, READ, REBOOT,
+	RECVKEY, REGS, REMBRK, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT,
+	WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
 	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
 	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
-	"next", "read", "reboot", "regs", "rembrk", "resume", "setreg", "step",
-	"timers", "toggle_key", "quit", "write"
+	"next", "pause", "read", "reboot", "recvkey", "regs", "rembrk",
+	"resume", "setreg", "step", "timers", "toggle_key", "quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
@@ -76,8 +77,10 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"load_memory <file> - load memory from binary <file>",
 	"load_rom <file> - load a new ROM <file>, clearing memory",
 	"next - print the next instruction without executing it",
+	"pause - pause execution",
 	"read <x> - read byte at memory <x> and display it",
 	"reboot - shut down and reboot CPU, clearing state",
+	"recvkey <key> - effectively press and release <key>",
 	"regs - dump all registers",
 	"rembrk <x> - remove the breakpoint at index <x>",
 	"resume - start or continue execution",
@@ -90,8 +93,8 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 };
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
-	-1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 2,
-	1, 2, 1, 1, 2, 1, 3, 1, 1, 2, 1, 3
+	-1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1,
+	1, 2, 1, 2, 1, 2, 1, 3, 1, 1, 2, 1, 3
 };
 #endif
 
@@ -387,7 +390,7 @@ void executeCommand(const char *cmd) {
 		if (argc > 1) {
 			enum command helpCmd = matchCommand(args[1]);
 			if (helpCmd == NO_COMMAND) {
-				printf("Unknown command `%s'.\n", base);
+				printf("Unknown command `%s'.\n", args[1]);
 				printf("For help, use `help'.\n");
 			} else {
 				printf("%s\n", COMMAND_HELP[(int) helpCmd]);
@@ -436,6 +439,10 @@ void executeCommand(const char *cmd) {
 		}
 		break;
 	}
+	case PAUSE: {
+		state.running = PAUSED;
+		break;
+	}
 	case READ: {
 		UWord loc;
 		if (parseWord(args[1], &loc) != 0) {
@@ -447,6 +454,18 @@ void executeCommand(const char *cmd) {
 	case REBOOT: {
 		c8_cpuBoot(emu);
 		state.hasRom = false;
+		break;
+	}
+	case RECVKEY: {
+		UByte key;
+		if (parseByte(args[1], &key) != 0) {
+			break;
+		}
+		if (key > 16) {
+			break;
+		}
+		c8_pressKey(emu, (int) key);
+		c8_releaseKey(emu, (int) key);
 		break;
 	}
 	case REGS: {

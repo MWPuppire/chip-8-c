@@ -106,12 +106,10 @@ c8_status_t c8_emulate(c8_state_t *state, double dt, int *outCycles) {
 		if (state->vblankWait)
 			break;
 #endif
-		if (state->awaitingKey != -1)
-			break;
 	}
 	if (outCycles != NULL)
 		*outCycles = totalCycles;
-	return state->awaitingKey == -1 ? C8_OK : C8_AWAITING_KEY;
+	return C8_OK;
 }
 
 c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *breakpoints, int n) {
@@ -158,12 +156,10 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *b
 		if (state->vblankWait)
 			break;
 #endif
-		if (state->awaitingKey != -1)
-			break;
 	}
 	if (outCycles != NULL)
 		*outCycles = totalCycles;
-	return state->awaitingKey == -1 ? C8_OK : C8_AWAITING_KEY;
+	return C8_OK;
 }
 
 bool c8_shouldBeep(c8_state_t *state) {
