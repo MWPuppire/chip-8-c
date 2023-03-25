@@ -6,7 +6,7 @@
 static inline void c8_skipInstruction(c8_state_t *state) {
 #ifdef XO_CHIP
 	// handle the double-word instruction `0xF000` correctly
-	if (c8_readMemoryWord(state->registers.pc) == 0xF000) {
+	if (c8_readMemoryWord(state, state->registers.pc) == 0xF000) {
 		state->registers.pc += 4;
 	} else {
 		state->registers.pc += 2;

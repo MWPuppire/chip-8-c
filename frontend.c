@@ -372,7 +372,15 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case FINISH: {
-		printf("Not implemented\n");
+		int nestedCalls = 1;
+		do {
+			UWord pos = c8_readRegister(emu, C8_REG_PC);
+			UWord inst = c8_readMemoryWord(emu, pos);
+			if (inst == 0x00EE) // return opcode
+				nestedCalls--;
+			else if ((inst & 0xF000) == 0x2000) // call opcode
+				nestedCalls++;
+		} while (nestedCalls > 0);
 		break;
 	}
 	case HELP: {

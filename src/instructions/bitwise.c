@@ -8,7 +8,7 @@ int c8_orRegister(c8_state_t *state, UWord word) {
 	UByte valueX = c8_readRegister(state, regX);
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX | valueY);
-#if !defined(SCHIP) && !defined(XO_CHIP)
+#ifdef COSMAC
 	state->registers.vF = 0;
 #endif
 	return 0;
@@ -20,7 +20,7 @@ int c8_andRegister(c8_state_t *state, UWord word) {
 	UByte valueX = c8_readRegister(state, regX);
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX & valueY);
-#if !defined(SCHIP) && !defined(XO_CHIP)
+#ifdef COSMAC
 	state->registers.vF = 0;
 #endif
 	return 0;
@@ -32,7 +32,7 @@ int c8_xorRegister(c8_state_t *state, UWord word) {
 	UByte valueX = c8_readRegister(state, regX);
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX ^ valueY);
-#if !defined(SCHIP) && !defined(XO_CHIP)
+#ifdef COSMAC
 	state->registers.vF = 0;
 #endif
 	return 0;

@@ -18,10 +18,11 @@
 
 #if defined(SCHIP) || defined(XO_CHIP)
 #	define SCREEN_WIDTH  128
-#	define SCREEN_HEIGTH 64
+#	define SCREEN_HEIGHT 64
 #else
 #	define SCREEN_WIDTH  64
 #	define SCREEN_HEIGHT 32
+#	define COSMAC
 #endif
 #define C8_SCREEN_MEM    (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
 
@@ -60,6 +61,10 @@ struct c8_state {
 	int awaitingKey;
 	bool input[16];
 	bool exited;
+#ifdef COSMAC
+	double vblankDiff;
+	bool vblankWait;
+#endif
 #if defined(SCHIP) || defined(XO_CHIP)
 	bool hires;
 	UByte registerPersistent[16];
