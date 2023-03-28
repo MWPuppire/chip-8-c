@@ -1,5 +1,0 @@
-TODO:
-	put debug console in-window (`~` to bring it up or something)
-		(not really as needed with better debugger in app)
-	add an in-app memory viewer (probably would make a new window)
-	more fully implement Super CHIP-8 and XO-CHIP instructions

@@ -1,4 +1,3 @@
-/bin
+/build
 /dev-test
-/Dev_chip-8.bundle
 *.o
