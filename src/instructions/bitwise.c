@@ -9,7 +9,7 @@ int c8_orRegister(c8_state_t *state, UWord word) {
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX | valueY);
 #ifdef COSMAC
-	state->registers.vF = 0;
+	state->registers[0xF] = 0;
 #endif
 	return 0;
 }
@@ -21,7 +21,7 @@ int c8_andRegister(c8_state_t *state, UWord word) {
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX & valueY);
 #ifdef COSMAC
-	state->registers.vF = 0;
+	state->registers[0xF] = 0;
 #endif
 	return 0;
 }
@@ -33,7 +33,7 @@ int c8_xorRegister(c8_state_t *state, UWord word) {
 	UByte valueY = c8_readRegister(state, regY);
 	c8_writeRegister(state, regX, valueX ^ valueY);
 #ifdef COSMAC
-	state->registers.vF = 0;
+	state->registers[0xF] = 0;
 #endif
 	return 0;
 }
@@ -47,7 +47,7 @@ int c8_shiftRegisterRight(c8_state_t *state, UWord word) {
 	UByte value = c8_readRegister(state, inReg);
 #endif
 	c8_writeRegister(state, reg, value >> 1);
-	state->registers.vF = value & 1;
+	state->registers[0xF] = value & 1;
 	return 0;
 }
 
@@ -60,6 +60,6 @@ int c8_shiftRegisterLeft(c8_state_t *state, UWord word) {
 	UByte value = c8_readRegister(state, inReg);
 #endif
 	c8_writeRegister(state, reg, value << 1);
-	state->registers.vF = (value >> 7) & 1;
+	state->registers[0xF] = (value >> 7) & 1;
 	return 0;
 }

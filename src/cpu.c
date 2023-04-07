@@ -53,13 +53,13 @@ c8_status_t c8_cpuStep(c8_state_t *state, int *outCycles) {
 		return C8_EXITED;
 	if (state->awaitingKey != -1)
 		return C8_AWAITING_KEY;
-	UWord opcode = c8_readMemoryWord(state, state->registers.pc);
+	UWord opcode = c8_readMemoryWord(state, state->regPC);
 	struct c8_instruction inst = { 0 };
 	c8_instructionLookup(&inst, opcode);
 	if (inst.execute == NULL)
 		return C8_UNKNOWN_OP;
 	int cycles = inst.cycles;
-	state->registers.pc += 2;
+	state->regPC += 2;
 	int extraCycles = inst.execute(state, opcode);
 	if (outCycles != NULL)
 		*outCycles = cycles + extraCycles;
@@ -147,7 +147,7 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *b
 		state->cycleDiff -= cyclesTaken;
 		totalCycles += cyclesTaken;
 		for (int i = 0; i < n; i++) {
-			if (state->registers.pc == breakpoints[i]) {
+			if (state->regPC == breakpoints[i]) {
 				outCycles != NULL && (*outCycles = totalCycles);
 				return C8_BREAK;
 			}
@@ -182,4 +182,11 @@ size_t c8_callStack(c8_state_t *state, UWord *frames, size_t frameSize) {
 		frames[framesWritten++] = state->callStack[i];
 	}
 	return totalFrames;
+}
+
+const char *c8_disassemble(c8_state_t *state, UWord pos) {
+	UWord word = c8_readMemoryWord(state, pos);
+	struct c8_instruction inst;
+	c8_instructionLookup(&inst, word);
+	return inst.disassembly;
 }

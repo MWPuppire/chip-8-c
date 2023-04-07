@@ -12,3 +12,4 @@ bool c8_shouldBeep(c8_state_t *state);
 UWord c8_delayTimer(c8_state_t *state);
 UWord c8_soundTimer(c8_state_t *state);
 size_t c8_callStack(c8_state_t *state, UWord *frames, size_t frameSize);
+const char *c8_disassemble(c8_state_t *state, UWord pos);

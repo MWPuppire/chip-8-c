@@ -275,10 +275,3 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 	}
 	return inst->execute == NULL;
 }
-
-const char *c8_disassemble(c8_state_t *state, UWord pos) {
-	UWord word = c8_readMemoryWord(state, pos);
-	struct c8_instruction inst;
-	c8_instructionLookup(&inst, word);
-	return inst.disassembly;
-}

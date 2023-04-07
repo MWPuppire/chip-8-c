@@ -49,19 +49,20 @@ int strncmpcase(const char *s1, const char *s2, size_t len) {
 }
 
 const int COMMAND_START = 1;
-const int COMMAND_COUNT = 26;
+const int COMMAND_COUNT = 28;
 enum command {
 	NO_COMMAND,
 	BACKTRACE, BRK, CYCLES, DISASSEMBLE, DUMP_DISPLAY, DUMP_MEMORY, FINISH,
-	HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, NEXT, PAUSE, READ, REBOOT,
-	RECVKEY, REGS, REMBRK, RESUME, SETREG, STEP, TIMERS, TOGGLE_KEY, QUIT,
-	WRITE
+	GOTO, HELP, LISTBRK, LOAD_MEMORY, LOAD_ROM, NEXT, PAUSE, READ, REBOOT,
+	RECVKEY, REGS, REMBRK, RESUME, SETADDR, SETREG, STEP, TIMERS,
+	TOGGLE_KEY, QUIT, WRITE
 };
 const char *COMMAND_NAMES[COMMAND_COUNT] = {
 	"MISSING", "backtrace", "brk", "cycles", "disassemble", "dump_display",
-	"dump_memory", "finish", "help", "listbrk", "load_memory", "load_rom",
-	"next", "pause", "read", "reboot", "recvkey", "regs", "rembrk",
-	"resume", "setreg", "step", "timers", "toggle_key", "quit", "write"
+	"dump_memory", "finish", "goto", "help", "listbrk", "load_memory",
+	"load_rom", "next", "pause", "read", "reboot", "recvkey", "regs",
+	"rembrk", "resume", "setaddr", "setreg", "step", "timers", "toggle_key",
+	"quit", "write"
 };
 const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"NO COMMAND",
@@ -72,6 +73,7 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"dump_display <file> - write the display to JPEG <file>",
 	"dump_memory <file> - write memory to binary <file>",
 	"finish - run until the current function returns",
+	"goto <x> - set PC to <x>",
 	"help [cmd] - display this help text or the text for <cmd>",
 	"listbrk - list all breakpoints by index",
 	"load_memory <file> - load memory from binary <file>",
@@ -84,6 +86,7 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 	"regs - dump all registers",
 	"rembrk <x> - remove the breakpoint at index <x>",
 	"resume - start or continue execution",
+	"setaddr <x> - set the address register to <x>",
 	"setreg <x> <y> - set register <x> to <y>",
 	"step - execute only the next instruction",
 	"timers - display the current timers status",
@@ -93,8 +96,8 @@ const char *COMMAND_HELP[COMMAND_COUNT] = {
 };
 
 const int COMMAND_ARGC[COMMAND_COUNT] = {
-	-1, 1, 2, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1,
-	1, 2, 1, 2, 1, 2, 1, 3, 1, 1, 2, 1, 3
+	-1, 1, 2, 1, 1, 2, 2, 1, 2, 1, 1, 2, 2, 1,
+	1, 2, 1, 2, 1, 2, 1, 2, 3, 1, 1, 2, 1, 3
 };
 #endif
 
@@ -353,7 +356,7 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case DISASSEMBLE: {
-		UWord pos = c8_readRegister(emu, C8_REG_PC);
+		UWord pos = c8_readPC(emu);
 		if (argc > 1) {
 			if (parseWord(args[1], &pos) != 0) {
 				break;
@@ -377,13 +380,21 @@ void executeCommand(const char *cmd) {
 	case FINISH: {
 		int nestedCalls = 1;
 		do {
-			UWord pos = c8_readRegister(emu, C8_REG_PC);
+			UWord pos = c8_readPC(emu);
 			UWord inst = c8_readMemoryWord(emu, pos);
 			if (inst == 0x00EE) // return opcode
 				nestedCalls--;
 			else if ((inst & 0xF000) == 0x2000) // call opcode
 				nestedCalls++;
 		} while (nestedCalls > 0);
+		break;
+	}
+	case GOTO: {
+		UWord loc;
+		if (parseWord(args[1], &loc) != 0) {
+			break;
+		}
+		c8_writePC(emu, loc);
 		break;
 	}
 	case HELP: {
@@ -429,13 +440,12 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case NEXT: {
-		UWord pc = c8_readRegister(emu, C8_REG_PC);
-		UWord opcode = c8_readMemoryWord(emu, pc);
-		struct c8_instruction inst;
-		if (c8_instructionLookup(&inst, opcode) != 0) {
+		UWord pc = c8_readPC(emu);
+		const char *disassembly = c8_disassemble(emu, pc);
+		if (disassembly == NULL) {
 			printf("Unknown instruction ahead\n");
 		} else {
-			printf("%s\n", inst.disassembly);
+			printf("%s\n", disassembly);
 		}
 		break;
 	}
@@ -472,8 +482,8 @@ void executeCommand(const char *cmd) {
 		for (c8_register_t i = 0; i < C8_REG_8; i++)
 			printf("v%x: %02x\tv%x: %02x\n", i, c8_readRegister(emu, i),
 				i + 8, c8_readRegister(emu, i + 8));
-		printf("Program Counter: %04x\n", c8_readRegister(emu, C8_REG_PC));
-		printf("Address: %04x\n", c8_readRegister(emu, C8_REG_I));
+		printf("Program Counter: %04x\n", c8_readPC(emu));
+		printf("Address: %04x\n", c8_readAddressRegister(emu));
 		break;
 	}
 	case REMBRK: {
@@ -499,6 +509,14 @@ void executeCommand(const char *cmd) {
 		state.running = RUNNING;
 		break;
 	}
+	case SETADDR: {
+		UWord loc;
+		if (parseWord(args[1], &loc) != 0) {
+			break;
+		}
+		c8_writeAddressRegister(emu, loc);
+		break;
+	}
 	case SETREG: {
 		c8_register_t reg;
 		if (c8_registerByName(args[1], &reg) != 0) {
@@ -522,7 +540,7 @@ void executeCommand(const char *cmd) {
 		if (status == C8_EXITED) {
 			printf("ROM exited via `exit` instruction");
 		} else if (status == C8_UNKNOWN_OP) {
-			UWord pc = c8_readRegister(emu, C8_REG_PC);
+			UWord pc = c8_readPC(emu);
 			printf("Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
 			const char *disassembly = c8_disassemble(emu, pc);
 			if (disassembly != NULL)
@@ -768,7 +786,7 @@ int main(int argc, char *argv[]) {
 #endif
 					continue;
 				} else if (status == C8_UNKNOWN_OP) {
-					UWord pc = c8_readRegister(emu, C8_REG_PC);
+					UWord pc = c8_readPC(emu);
 					fprintf(stderr, "Unknown instruction: %04X\n", c8_readMemoryWord(emu, pc));
 					const char *disassembly = c8_disassemble(emu, pc);
 					if (disassembly != NULL)

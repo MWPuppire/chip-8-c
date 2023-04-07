@@ -2,9 +2,6 @@
 
 #include "shared.h"
 
-extern const unsigned char C8_FONT_SET[80];
-extern const UWord C8_SPRITE_ADDR[16];
-
 UByte c8_readMemoryByte(c8_state_t *state, UWord position);
 SByte c8_readMemorySByte(c8_state_t *state, UWord position);
 UWord c8_readMemoryWord(c8_state_t *state, UWord position);

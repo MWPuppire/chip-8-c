@@ -6,9 +6,9 @@
 int c8_bcd(c8_state_t *state, UWord word) {
 	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UByte val = c8_readRegister(state, reg);
-	c8_writeMemoryByte(state, state->registers.I + 0, val / 100);
-	c8_writeMemoryByte(state, state->registers.I + 1, (val / 10) % 10);
-	c8_writeMemoryByte(state, state->registers.I + 2, val % 10);
+	c8_writeMemoryByte(state, state->regI + 0, val / 100);
+	c8_writeMemoryByte(state, state->regI + 1, (val / 10) % 10);
+	c8_writeMemoryByte(state, state->regI + 2, val % 10);
 	return 0;
 }
 

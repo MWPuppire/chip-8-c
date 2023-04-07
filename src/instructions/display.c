@@ -24,7 +24,7 @@ int c8_draw(c8_state_t *state, UWord word) {
 	UByte y = c8_readRegister(state, yReg) % C8_SCREEN_HEIGHT;
 #endif
 	UByte n = (UByte) word & 0xF;
-	UWord idx = state->registers.I;
+	UWord idx = state->regI;
 	UByte flag = 0;
 	for (int i = 0; i < n; i++) {
 		UByte tempX = x;
@@ -51,7 +51,7 @@ int c8_draw(c8_state_t *state, UWord word) {
 		y += 1;
 		idx += 1;
 	}
-	state->registers.vF = flag;
+	state->registers[0xF] = flag;
 	return 0;
 }
 

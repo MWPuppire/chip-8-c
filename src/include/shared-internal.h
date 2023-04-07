@@ -29,26 +29,9 @@
 #define C8_STACK_SIZE 16
 
 struct c8_state {
-	struct {
-		UByte v0;
-		UByte v1;
-		UByte v2;
-		UByte v3;
-		UByte v4;
-		UByte v5;
-		UByte v6;
-		UByte v7;
-		UByte v8;
-		UByte v9;
-		UByte vA;
-		UByte vB;
-		UByte vC;
-		UByte vD;
-		UByte vE;
-		UByte vF;
-		UWord I;
-		UWord pc;
-	} registers;
+	UByte registers[16];
+	UWord regI;
+	UWord regPC;
 	UWord randomState;
 	UWord callStack[C8_STACK_SIZE];
 	UByte delayTimer;

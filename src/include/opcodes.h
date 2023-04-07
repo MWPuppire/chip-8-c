@@ -9,4 +9,3 @@ struct c8_instruction {
 };
 
 int c8_instructionLookup(struct c8_instruction *inst, UWord word);
-const char *c8_disassemble(c8_state_t *state, UWord pos);
