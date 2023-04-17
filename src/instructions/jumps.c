@@ -30,7 +30,7 @@ int c8_jumpV0(c8_state_t *state, UWord word) {
 #else
 	UWord offset = state->registers[0x0];
 #endif
-	state->regPC = value + offset;
+	state->regPC = (value + offset) & 0xFFF;
 	return 0;
 }
 
@@ -38,6 +38,6 @@ int c8_jumpOffset(c8_state_t *state, UWord word) {
 	c8_register_t reg = (c8_register_t) ((word >> 8) & 0xF);
 	UWord value = word & 0xFFF;
 	UWord offset = c8_readRegister(state, reg);
-	state->regPC = value + offset;
+	state->regPC = (value + offset) & 0xFFF;
 	return 0;
 }

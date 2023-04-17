@@ -24,7 +24,7 @@ A CHIP-8 emulator. Structured such that the frontend (as in, the input and displ
 * add an in-app memory viewer (probably would make a new window)
 * more fully implement Super CHIP-8 and XO-CHIP instructions
 * actually add audio
-* quick save / quick load
+* quick save / quick load in frontend
 * documentation
 * comments?
 * configurable keys

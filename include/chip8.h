@@ -6,3 +6,4 @@
 #include "registers.h"
 #include "screen.h"
 #include "input.h"
+#include "save-state.h"

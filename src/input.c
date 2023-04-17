@@ -19,6 +19,6 @@ void c8_releaseKey(c8_state_t *state, int key) {
 	}
 }
 
-bool c8_isKeyDown(c8_state_t *state, int key) {
+bool c8_isKeyDown(const c8_state_t *state, int key) {
 	return state->input[key];
 }

@@ -22,19 +22,19 @@ const UByte C8_FONT_SET[80] = {
 	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-UByte c8_readMemoryByte(c8_state_t *state, UWord position) {
+UByte c8_readMemoryByte(const c8_state_t *state, UWord position) {
 	return state->memory[position];
 }
-SByte c8_readMemorySByte(c8_state_t *state, UWord position) {
+SByte c8_readMemorySByte(const c8_state_t *state, UWord position) {
 	return (SByte) state->memory[position];
 }
 
-UWord c8_readMemoryWord(c8_state_t *state, UWord position) {
+UWord c8_readMemoryWord(const c8_state_t *state, UWord position) {
 	UWord out = state->memory[position + 1];
 	out |= (state->memory[position] << 8);
 	return out;
 }
-SWord c8_readMemorySWord(c8_state_t *state, UWord position) {
+SWord c8_readMemorySWord(const c8_state_t *state, UWord position) {
 	UWord out = state->memory[position + 1];
 	out |= (state->memory[position] << 8);
 	return (SWord) out;
@@ -65,7 +65,7 @@ c8_status_t c8_loadROM(c8_state_t *state, const unsigned char *rom, size_t size)
 	return C8_OK;
 }
 
-void c8_dumpMemory(c8_state_t *state, unsigned char *buf, size_t size) {
+void c8_dumpMemory(const c8_state_t *state, unsigned char *buf, size_t size) {
 	if (buf == NULL || size == 0)
 		return;
 	memcpy(buf, state->memory, size);

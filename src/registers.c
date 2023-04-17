@@ -31,21 +31,21 @@ void c8_resetRegisters(c8_state_t *state) {
 	state->regPC = 0x0200;
 }
 
-UByte c8_readRegister(c8_state_t *state, c8_register_t reg) {
+UByte c8_readRegister(const c8_state_t *state, c8_register_t reg) {
 	return state->registers[reg];
 }
 void c8_writeRegister(c8_state_t *state, c8_register_t reg, UByte value) {
 	state->registers[reg] = value;
 }
 
-UWord c8_readAddressRegister(c8_state_t *state) {
+UWord c8_readAddressRegister(const c8_state_t *state) {
 	return state->regI;
 }
 void c8_writeAddressRegister(c8_state_t *state, UWord value) {
 	state->regI = value;
 }
 
-UWord c8_readPC(c8_state_t *state) {
+UWord c8_readPC(const c8_state_t *state) {
 	return state->regPC;
 }
 void c8_writePC(c8_state_t *state, UWord value) {

@@ -13,9 +13,9 @@ extern const char *REGISTER_NAMES[C8_REGISTER_COUNT];
 
 int c8_registerByName(const char *name, c8_register_t *reg);
 void c8_resetRegisters(c8_state_t *state);
-UByte c8_readRegister(c8_state_t *state, c8_register_t reg);
+UByte c8_readRegister(const c8_state_t *state, c8_register_t reg);
 void c8_writeRegister(c8_state_t *state, c8_register_t reg, UByte value);
-UWord c8_readAddressRegister(c8_state_t *state);
+UWord c8_readAddressRegister(const c8_state_t *state);
 void c8_writeAddressRegister(c8_state_t *state, UWord value);
-UWord c8_readPC(c8_state_t *state);
+UWord c8_readPC(const c8_state_t *state);
 void c8_writePC(c8_state_t *state, UWord value);

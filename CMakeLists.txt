@@ -18,11 +18,11 @@ find_package(SDL2 REQUIRED)
 
 add_library(chip8)
 target_sources(chip8 PRIVATE src/cpu.c src/input.c src/memory.c src/opcodes.c
-	src/registers.c src/screen.c src/instructions/arithmetic.c
-	src/instructions/assignment.c src/instructions/bitwise.c
-	src/instructions/branches.c src/instructions/display.c
-	src/instructions/jumps.c src/instructions/misc.c
-	src/instructions/timers.c)
+	src/registers.c src/save-state.c src/screen.c
+	src/instructions/arithmetic.c src/instructions/assignment.c
+	src/instructions/bitwise.c src/instructions/branches.c
+	src/instructions/display.c src/instructions/jumps.c
+	src/instructions/misc.c src/instructions/timers.c)
 target_include_directories(chip8 PUBLIC include)
 target_include_directories(chip8 PRIVATE src/include)
 

@@ -63,6 +63,8 @@ c8_status_t c8_cpuStep(c8_state_t *state, int *outCycles) {
 	int extraCycles = inst.execute(state, opcode);
 	if (outCycles != NULL)
 		*outCycles = cycles + extraCycles;
+	if (state->regPC >= C8_ADDRESSABLE_MEM)
+		state->regPC &= (C8_ADDRESSABLE_MEM - 1);
 	return C8_OK;
 }
 
@@ -162,18 +164,18 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *b
 	return C8_OK;
 }
 
-bool c8_shouldBeep(c8_state_t *state) {
+bool c8_shouldBeep(const c8_state_t *state) {
 	return !state->exited && state->soundTimer > 0;
 }
 
-UWord c8_delayTimer(c8_state_t *state) {
+UWord c8_delayTimer(const c8_state_t *state) {
 	return state->delayTimer;
 }
-UWord c8_soundTimer(c8_state_t *state) {
+UWord c8_soundTimer(const c8_state_t *state) {
 	return state->soundTimer;
 }
 
-size_t c8_callStack(c8_state_t *state, UWord *frames, size_t frameSize) {
+size_t c8_callStack(const c8_state_t *state, UWord *frames, size_t frameSize) {
 	size_t totalFrames = (size_t) state->callStackPos;
 	size_t framesWritten = 0;
 	for (size_t i = totalFrames - 1; i >= 0; i--) {
@@ -184,7 +186,7 @@ size_t c8_callStack(c8_state_t *state, UWord *frames, size_t frameSize) {
 	return totalFrames;
 }
 
-const char *c8_disassemble(c8_state_t *state, UWord pos) {
+const char *c8_disassemble(const c8_state_t *state, UWord pos) {
 	UWord word = c8_readMemoryWord(state, pos);
 	struct c8_instruction inst;
 	c8_instructionLookup(&inst, word);

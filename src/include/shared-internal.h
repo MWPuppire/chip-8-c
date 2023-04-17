@@ -29,27 +29,29 @@
 #define C8_STACK_SIZE 16
 
 struct c8_state {
-	UByte registers[16];
+	double cycleDiff;
+	double timerDiff;
+#ifdef COSMAC
+	double vblankDiff;
+#endif
+	int callStackPos;
+	int awaitingKey;
 	UWord regI;
 	UWord regPC;
 	UWord randomState;
 	UWord callStack[C8_STACK_SIZE];
+	UByte registers[16];
 	UByte delayTimer;
 	UByte soundTimer;
 	UByte memory[C8_ADDRESSABLE_MEM];
 	UByte screen[C8_SCREEN_MEM];
-	double cycleDiff;
-	double timerDiff;
-	int callStackPos;
-	int awaitingKey;
 	bool input[16];
 	bool exited;
-#ifdef COSMAC
-	double vblankDiff;
-	bool vblankWait;
-#endif
 #if defined(SCHIP) || defined(XO_CHIP)
-	bool hires;
 	UByte registerPersistent[16];
+	bool hires;
+#endif
+#ifdef COSMAC
+	bool vblankWait;
 #endif
 };

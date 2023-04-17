@@ -36,7 +36,7 @@ UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
 #endif
 }
 
-UByte c8_readFromScreen(c8_state_t *state, UByte x, UByte y) {
+UByte c8_readFromScreen(const c8_state_t *state, UByte x, UByte y) {
 	size_t pos = (size_t) x / 8 + (size_t) y * (C8_SCREEN_WIDTH / 8);
 	return (state->screen[pos] & (1 << (x & 7))) != 0;
 }

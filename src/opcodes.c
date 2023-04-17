@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include <shared-internal.h>
 #include <memory.h>
@@ -11,7 +10,7 @@
 // https://jackson-s.me/2019/07/13/Chip-8-Instruction-Scheduling-and-Frequency.html
 
 int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
-	memset(inst, 0, sizeof(struct c8_instruction));
+	inst->execute = NULL;
 	switch (word & 0xF000) {
 	case 0x0000:
 		if (word == 0x0000) {
