@@ -545,6 +545,13 @@ void executeCommand(const char *cmd) {
 			const char *disassembly = c8_disassemble(emu, pc);
 			if (disassembly != NULL)
 				printf("%s\n", disassembly);
+		} else if (status == C8_OP_NOT_DEFINED) {
+			UWord pc = c8_readPC(emu);
+			c8_emu_mode_t mode = c8_mode(emu);
+			printf("Operation not defined for mode %s\n", C8_MODE_NAMES[mode]);
+			const char *disassembly = c8_disassemble(emu, pc);
+			if (disassembly != NULL)
+				printf("%s\n", disassembly);
 		} else {
 			state.cycles += cycles;
 		}
@@ -628,7 +635,7 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = NULL;
 	SDL_Renderer *renderer = NULL;
 
-	c8_state_t *emu = state.state = c8_newState();
+	c8_state_t *emu = state.state = c8_newState(C8_CHIP_8);
 	if (emu == NULL) {
 		fprintf(stderr, "Could not allocate memory.\n");
 		return 1;

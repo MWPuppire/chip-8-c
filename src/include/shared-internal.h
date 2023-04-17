@@ -16,28 +16,19 @@
 #	define C8_TIMER_SPEED 60.0
 #endif
 
-#if defined(SCHIP) || defined(XO_CHIP)
-#	define SCREEN_WIDTH  128
-#	define SCREEN_HEIGHT 64
-#else
-#	define SCREEN_WIDTH  64
-#	define SCREEN_HEIGHT 32
-#	define COSMAC
-#endif
-#define C8_SCREEN_MEM    (SCREEN_WIDTH * SCREEN_HEIGHT / 8)
-
-#if defined(COSMAC) && !defined(C8_VBLANK_SPEED)
+#ifndef C8_VBLANK_SPEED
 #	define C8_VBLANK_SPEED 60.0
 #endif
+
+#define C8_SCREEN_MEM    (C8_SCREEN_WIDTH * C8_SCREEN_HEIGHT / 8)
 
 #define C8_STACK_SIZE 16
 
 struct c8_state {
 	double cycleDiff;
 	double timerDiff;
-#ifdef COSMAC
 	double vblankDiff;
-#endif
+	c8_emu_mode_t mode;
 	int callStackPos;
 	int awaitingKey;
 	UWord regI;
@@ -49,13 +40,9 @@ struct c8_state {
 	UByte soundTimer;
 	UByte memory[C8_ADDRESSABLE_MEM];
 	UByte screen[C8_SCREEN_MEM];
+	UByte registerPersistent[16];
 	bool input[16];
 	bool exited;
-#if defined(SCHIP) || defined(XO_CHIP)
-	UByte registerPersistent[16];
 	bool hires;
-#endif
-#ifdef COSMAC
 	bool vblankWait;
-#endif
 };

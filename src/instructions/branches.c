@@ -4,16 +4,12 @@
 #include <instructions.h>
 
 static inline void c8_skipInstruction(c8_state_t *state) {
-#ifdef XO_CHIP
-	// handle the double-word instruction `0xF000` correctly
-	if (c8_readMemoryWord(state, state->regPC) == 0xF000) {
+	// handle the double-word instruction `0xF000` in XO-CHIP correctly
+	if (state->mode == C8_XO_CHIP && c8_readMemoryWord(state, state->regPC) == 0xF000) {
 		state->regPC += 4;
 	} else {
 		state->regPC += 2;
 	}
-#else
-	state->regPC += 2;
-#endif
 }
 
 int c8_ifEquals(c8_state_t *state, UWord word) {

@@ -20,15 +20,19 @@ A CHIP-8 emulator. Structured such that the frontend (as in, the input and displ
 
 ## TODO:
 
-* put debug console in-window (`~` to bring it up or something) (not really as needed with the new debugger in app)
-* add an in-app memory viewer (probably would make a new window)
+emulator back-end:
 * more fully implement Super CHIP-8 and XO-CHIP instructions
-* actually add audio
-* quick save / quick load in frontend
 * documentation
 * comments?
+
+frontend:
+* put debug console in-window (`~` to bring it up or something) (not really as needed with the new debugger in app)
+* add an in-app memory viewer (probably would make a new window)
+* actually add audio
+* quick save / quick load
 * configurable keys
 * rapid-fire keys (by holding shift or something)
 * pause/fast-forward/slow-motion/step forward keys
-* rewind? and/or step backward?
+* rewind? and/or step backward? (also a back-end issue)
 * screenshot? and/or record video?
+* change emulator within the app (instead of having to recompile)

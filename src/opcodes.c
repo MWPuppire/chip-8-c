@@ -9,7 +9,57 @@
 // If I ever want more precise instruction timings:
 // https://jackson-s.me/2019/07/13/Chip-8-Instruction-Scheduling-and-Frequency.html
 
-int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
+int c8_opNotDefined(c8_state_t *UNUSED(state), UWord UNUSED(word)) {
+	return 0;
+}
+
+const static c8_inst_execute_t regDumpTable[] = {
+	c8_regDump,
+	c8_schipRegDump,
+	c8_regDump,
+};
+const static c8_inst_execute_t regLoadTable[] = {
+	c8_regLoad,
+	c8_schipRegLoad,
+	c8_regLoad,
+};
+const static c8_inst_execute_t orRegisterTable[] = {
+	c8_cosmacOrRegister,
+	c8_orRegister,
+	c8_orRegister,
+};
+const static c8_inst_execute_t andRegisterTable[] = {
+	c8_cosmacAndRegister,
+	c8_andRegister,
+	c8_andRegister,
+};
+const static c8_inst_execute_t xorRegisterTable[] = {
+	c8_cosmacXorRegister,
+	c8_xorRegister,
+	c8_xorRegister,
+};
+const static c8_inst_execute_t shiftRegisterRightTable[] = {
+	c8_shiftRegisterRight,
+	c8_schipShiftRegisterRight,
+	c8_shiftRegisterRight,
+};
+const static c8_inst_execute_t shiftRegisterLeftTable[] = {
+	c8_shiftRegisterLeft,
+	c8_schipShiftRegisterLeft,
+	c8_shiftRegisterLeft,
+};
+const static c8_inst_execute_t drawTable[] = {
+	c8_cosmacDraw,
+	c8_schipDraw,
+	c8_xoDraw,
+};
+const static c8_inst_execute_t jumpV0Table[] = {
+	c8_jumpV0,
+	c8_schipJumpV0,
+	c8_jumpV0,
+};
+
+c8_status_t c8_instructionLookup(c8_emu_mode_t mode, struct c8_instruction *inst, UWord word) {
 	inst->execute = NULL;
 	switch (word & 0xF000) {
 	case 0x0000:
@@ -17,14 +67,16 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->disassembly = "(void) 0;";
 			inst->execute = c8_nop;
 			inst->cycles = 1;
-#if defined(SCHIP) || defined(XO_CHIP)
 		} else if ((word & 0x00F0) == 0x00C0) {
 			inst->disassembly = "scroll_down(N);";
-#endif
-#ifdef XO_CHIP
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			}
 		} else if ((word & 0x00F0) == 0x00D0) {
 			inst->disassembly = "scroll_up(N);";
-#endif
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 		} else if (word == 0x00E0) {
 			inst->disassembly = "display_clear();";
 			inst->execute = c8_displayClear;
@@ -33,24 +85,40 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->disassembly = "return;";
 			inst->execute = c8_returnInst;
 			inst->cycles = 1;
-#if defined(SCHIP) || defined(XO_CHIP)
 		} else if (word == 0x00FB) {
 			inst->disassembly = "scroll_right();";
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			}
 		} else if (word == 0x00FC) {
 			inst->disassembly = "scroll_left();";
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			}
 		} else if (word == 0x00FD) {
 			inst->disassembly = "exit();";
-			inst->execute = c8_exitInst;
 			inst->cycles = 1;
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			} else {
+				inst->execute = c8_exitInst;
+			}
 		} else if (word == 0x00FE) {
 			inst->disassembly = "low_res();";
-			inst->execute = c8_lowres;
 			inst->cycles = 1;
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			} else {
+				inst->execute = c8_lowres;
+			}
 		} else if (word == 0x00FF) {
 			inst->disassembly = "high_res();";
-			inst->execute = c8_highres;
 			inst->cycles = 1;
-#endif
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			} else {
+				inst->execute = c8_highres;
+			}
 		} else {
 			inst->disassembly = "call_routine(0xNNN);";
 		}
@@ -75,25 +143,23 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		inst->execute = c8_ifNotEquals;
 		inst->cycles = 1;
 		break;
-#ifdef XO_CHIP
 	case 0x5000:
 		if ((word & 0xF) == 0x0) {
 			inst->disassembly = "if (Vx == Vy) goto next;";
-			inst->execute = c8_ifEqualsReg;
 			inst->cycles = 1;
+			inst->execute = c8_ifEqualsReg;
 		} else if ((word & 0xF) == 0x2) {
 			inst->disassembly = "reg_dump(Vx, Vy, &I);";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 		} else if ((word & 0xF) == 0x3) {
 			inst->disassembly = "reg_load(Vx, Vy, &I);";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 		}
 		break;
-#else
-	case 0x5000:
-		inst->disassembly = "if (Vx == Vy) goto next;";
-		inst->execute = c8_ifEqualsReg;
-		inst->cycles = 1;
-		break;
-#endif
 	case 0x6000:
 		inst->disassembly = "Vx = NN;";
 		inst->execute = c8_setRegister;
@@ -113,17 +179,17 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			break;
 		case 0x1:
 			inst->disassembly = "Vx |= Vy;";
-			inst->execute = c8_orRegister;
+			inst->execute = orRegisterTable[mode];
 			inst->cycles = 1;
 			break;
 		case 0x2:
 			inst->disassembly = "Vx &= Vy;";
-			inst->execute = c8_andRegister;
+			inst->execute = andRegisterTable[mode];
 			inst->cycles = 1;
 			break;
 		case 0x3:
 			inst->disassembly = "Vx ^= Vy;";
-			inst->execute = c8_xorRegister;
+			inst->execute = xorRegisterTable[mode];
 			inst->cycles = 1;
 			break;
 		case 0x4:
@@ -138,7 +204,7 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			break;
 		case 0x6:
 			inst->disassembly = "Vx >>= 1;";
-			inst->execute = c8_shiftRegisterRight;
+			inst->execute = shiftRegisterRightTable[mode];
 			inst->cycles = 1;
 			break;
 		case 0x7:
@@ -148,7 +214,7 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			break;
 		case 0xE:
 			inst->disassembly = "Vx <<= 1;";
-			inst->execute = c8_shiftRegisterLeft;
+			inst->execute = shiftRegisterLeftTable[mode];
 			inst->cycles = 1;
 			break;
 		}
@@ -165,7 +231,7 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		break;
 	case 0xB000:
 		inst->disassembly = "PC = V0 + NNN;";
-		inst->execute = c8_jumpV0;
+		inst->execute = jumpV0Table[mode];
 		inst->cycles = 1;
 		break;
 	case 0xC000:
@@ -175,7 +241,7 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		break;
 	case 0xD000:
 		inst->disassembly = "draw(Vx, Vy, N);";
-		inst->execute = c8_draw;
+		inst->execute = drawTable[mode];
 		inst->cycles = 1;
 		break;
 	case 0xE000:
@@ -191,17 +257,24 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 		break;
 	case 0xF000:
 		switch (word & 0xFF) {
-#ifdef XO_CHIP
 		case 0x00:
 			inst->disassembly = "I = read_and_skip_next_word();";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 			break;
 		case 0x01:
 			inst->disassembly = "set_drawing_plane(N);";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 			break;
 		case 0x02:
 			inst->disassembly = "load_audio_pattern(I);";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 			break;
-#endif
 		case 0x07:
 			inst->disassembly = "Vx = get_delay();";
 			inst->execute = c8_getDelay;
@@ -232,45 +305,59 @@ int c8_instructionLookup(struct c8_instruction *inst, UWord word) {
 			inst->execute = c8_spriteAddrI;
 			inst->cycles = 1;
 			break;
-#if defined(SCHIP) || defined(XO_CHIP)
 		case 0x30:
 			inst->disassembly = "I = digit_addr[Vx];";
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			}
 			break;
-#endif
 		case 0x33:
 			inst->disassembly = "set_bcd(I, Vx);";
 			inst->execute = c8_bcd;
 			inst->cycles = 1;
 			break;
-#ifdef XO_CHIP
 		case 0x3A:
 			inst->disassembly = "set_audio_hertz(Vx)";
+			if (mode != C8_XO_CHIP) {
+				inst->execute = c8_opNotDefined;
+			}
 			break;
-#endif
 		case 0x55:
 			inst->disassembly = "reg_dump(V0, Vx, &I);";
-			inst->execute = c8_regDump;
+			inst->execute = regDumpTable[mode];
 			inst->cycles = 1;
 			break;
 		case 0x65:
 			inst->disassembly = "reg_load(V0, Vx, &I);";
-			inst->execute = c8_regLoad;
+			inst->execute = regLoadTable[mode];
 			inst->cycles = 1;
 			break;
-#if defined(SCHIP) || defined(XO_CHIP)
 		case 0x75:
 			inst->disassembly = "persist_dump(Vx);";
-			inst->execute = c8_persistentDump;
 			inst->cycles = 1;
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			} else {
+				inst->execute = c8_persistentDump;
+			}
 			break;
 		case 0x85:
 			inst->disassembly = "persist_load(Vx);";
-			inst->execute = c8_persistentLoad;
 			inst->cycles = 1;
+			if (mode == C8_CHIP_8) {
+				inst->execute = c8_opNotDefined;
+			} else {
+				inst->execute = c8_persistentLoad;
+			}
 			break;
-#endif
 		}
 		break;
 	}
-	return inst->execute == NULL;
+	if (inst->execute == NULL) {
+		return C8_UNKNOWN_OP;
+	} else if (inst->execute == c8_opNotDefined) {
+		return C8_OP_NOT_DEFINED;
+	} else {
+		return C8_OK;
+	}
 }

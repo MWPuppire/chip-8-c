@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#define C8_SCREEN_WIDTH  128
+#define C8_SCREEN_HEIGHT 64
+
 #if defined(UINT16_MAX) && defined(INT16_MAX)
 	typedef  int16_t SWord;
 	typedef uint16_t UWord;
@@ -21,9 +24,20 @@
 #endif
 
 typedef enum {
-	C8_OK, C8_AWAITING_KEY, C8_BREAK, C8_UNKNOWN_OP, C8_INVALID_FILE,
-	C8_EXITED
+	C8_OK,
+	C8_AWAITING_KEY,
+	C8_BREAK,
+	C8_UNKNOWN_OP,
+	C8_INVALID_FILE,
+	C8_OP_NOT_DEFINED,
+	C8_EXITED,
 } c8_status_t;
+
+typedef enum {
+	C8_CHIP_8 = 0,
+	C8_SUPER_CHIP = 1,
+	C8_XO_CHIP = 2,
+} c8_emu_mode_t;
 
 typedef struct c8_state c8_state_t;
 
@@ -31,9 +45,3 @@ extern const int C8_VERSION_MAJOR;
 extern const int C8_VERSION_MINOR;
 extern const int C8_VERSION_PATCH;
 extern const char *C8_VERSION_STRING;
-extern const int C8_SCREEN_WIDTH;
-extern const int C8_SCREEN_HEIGHT;
-
-extern const enum c8_comp_mode {
-	C8_CHIP_8, C8_SUPER_CHIP, C8_XO_CHIP
-} C8_COMPILED_MODE;

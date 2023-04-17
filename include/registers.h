@@ -9,7 +9,7 @@ typedef enum {
 	C8_REG_7, C8_REG_8, C8_REG_9, C8_REG_A, C8_REG_B, C8_REG_C, C8_REG_D,
 	C8_REG_E, C8_REG_F
 } c8_register_t;
-extern const char *REGISTER_NAMES[C8_REGISTER_COUNT];
+extern const char *C8_REGISTER_NAMES[C8_REGISTER_COUNT];
 
 int c8_registerByName(const char *name, c8_register_t *reg);
 void c8_resetRegisters(c8_state_t *state);

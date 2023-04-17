@@ -27,6 +27,7 @@ int c8_registerByName(const char *str, c8_register_t *reg) {
 
 void c8_resetRegisters(c8_state_t *state) {
 	memset(state->registers, 0, sizeof(UByte) * 16);
+	memset(state->registerPersistent, 0, sizeof(UByte) * 16);
 	state->regI = 0;
 	state->regPC = 0x0200;
 }

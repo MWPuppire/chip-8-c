@@ -30,9 +30,17 @@ int c8_regDump(c8_state_t *state, UWord word) {
 		UByte reg = c8_readRegister(state, i);
 		c8_writeMemoryByte(state, addr++, reg);
 	}
-#ifndef SCHIP
 	state->regI = addr;
-#endif
+	return 0;
+}
+
+int c8_schipRegDump(c8_state_t *state, UWord word) {
+	UWord addr = state->regI;
+	c8_register_t max = (c8_register_t) ((word >> 8) & 0xF) + 1;
+	for (c8_register_t i = C8_REG_0; i < max; i++) {
+		UByte reg = c8_readRegister(state, i);
+		c8_writeMemoryByte(state, addr++, reg);
+	}
 	return 0;
 }
 
@@ -43,9 +51,17 @@ int c8_regLoad(c8_state_t *state, UWord word) {
 		UByte byte = c8_readMemoryByte(state, addr++);
 		c8_writeRegister(state, i, byte);
 	}
-#ifndef SCHIP
 	state->regI = addr;
-#endif
+	return 0;
+}
+
+int c8_schipRegLoad(c8_state_t *state, UWord word) {
+	UWord addr = state->regI;
+	c8_register_t max = (c8_register_t) ((word >> 8) & 0xF) + 1;
+	for (c8_register_t i = C8_REG_0; i < max; i++) {
+		UByte byte = c8_readMemoryByte(state, addr++);
+		c8_writeRegister(state, i, byte);
+	}
 	return 0;
 }
 
@@ -64,7 +80,6 @@ int c8_spriteAddrI(c8_state_t *state, UWord word) {
 	return 0;
 }
 
-#if defined(SCHIP) || defined(XO_CHIP)
 int c8_persistentDump(c8_state_t *state, UWord word) {
 	c8_register_t max = (c8_register_t) ((word >> 8) & 0xF) + 1;
 	for (c8_register_t i = C8_REG_0; i < max; i++) {
@@ -82,4 +97,3 @@ int c8_persistentLoad(c8_state_t *state, UWord word) {
 	}
 	return 0;
 }
-#endif

@@ -4,6 +4,7 @@
 #include <save-state.h>
 
 struct c8_saved_state {
+	c8_emu_mode_t mode;
 	int callStackPos;
 	int awaitingKey;
 	UWord regI;
@@ -15,16 +16,15 @@ struct c8_saved_state {
 	UByte soundTimer;
 	UByte memory[C8_ADDRESSABLE_MEM];
 	UByte screen[C8_SCREEN_MEM];
-#if defined(SCHIP) || defined(XO_CHIP)
 	UByte registerPersistent[16];
 	bool hires;
-#endif
 };
 
 int c8_saveState(const c8_state_t *state, c8_saved_state_t *out) {
 	if (state->exited) {
 		return 1;
 	}
+	out->mode = state->mode;
 	out->callStackPos = state->callStackPos;
 	out->awaitingKey = state->awaitingKey;
 	out->regI = state->regI;
@@ -36,21 +36,20 @@ int c8_saveState(const c8_state_t *state, c8_saved_state_t *out) {
 	out->soundTimer = state->soundTimer;
 	memcpy(out->memory, state->memory, C8_ADDRESSABLE_MEM * sizeof(UByte));
 	memcpy(out->screen, state->screen, C8_SCREEN_MEM * sizeof(UByte));
-#if defined(SCHIP) || defined(XO_CHIP)
 	memcpy(out->registerPersistent, state->registerPersistent, 16 * sizeof(UByte));
 	out->hires = state->hires;
-#endif
 	return 0;
 }
 
-void c8_loadState(c8_state_t *state, const c8_saved_state_t *save) {
+int c8_loadState(c8_state_t *state, const c8_saved_state_t *save) {
+	if (state->mode != save->mode) {
+		return 1;
+	}
 	state->exited = false;
 	state->cycleDiff = 0.0;
 	state->timerDiff = 0.0;
-#ifdef COSMAC
 	state->vblankDiff = 0.0;
 	state->vblankWait = false;
-#endif
 	state->callStackPos = save->callStackPos;
 	state->awaitingKey = save->awaitingKey;
 	state->regI = save->regI;
@@ -62,8 +61,7 @@ void c8_loadState(c8_state_t *state, const c8_saved_state_t *save) {
 	state->soundTimer = save->soundTimer;
 	memcpy(state->memory, save->memory, C8_ADDRESSABLE_MEM * sizeof(UByte));
 	memcpy(state->screen, save->screen, C8_SCREEN_MEM * sizeof(UByte));
-#if defined(SCHIP) || defined(XO_CHIP)
 	memcpy(state->registerPersistent, save->registerPersistent, 16 * sizeof(UByte));
 	state->hires = save->hires;
-#endif
+	return 0;
 }

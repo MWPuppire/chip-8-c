@@ -35,9 +35,7 @@ int c8_getKey(c8_state_t *state, UWord word) {
 	return 0;
 }
 
-#if defined(SCHIP) || defined(XO_CHIP)
 int c8_exitInst(c8_state_t *state, UWord UNUSED(word)) {
 	state->exited = true;
 	return 0;
 }
-#endif

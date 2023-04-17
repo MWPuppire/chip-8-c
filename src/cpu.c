@@ -12,20 +12,18 @@ const int C8_VERSION_MAJOR = 0;
 const int C8_VERSION_MINOR = 1;
 const int C8_VERSION_PATCH = 0;
 const char *C8_VERSION_STRING = "0.1.0";
-#ifdef SCHIP
-const enum c8_comp_mode C8_COMPILED_MODE = C8_SUPER_CHIP;
-#elif defined(XO_CHIP)
-const enum c8_comp_mode C8_COMPILED_MODE = C8_XO_CHIP;
-#else
-const enum c8_comp_mode C8_COMPILED_MODE = C8_CHIP_8;
-#endif
-const int C8_SCREEN_WIDTH  = SCREEN_WIDTH;
-const int C8_SCREEN_HEIGHT = SCREEN_HEIGHT;
 
-c8_state_t *c8_newState(void) {
+const char *C8_MODE_NAMES[3] = {
+	"COSMAC", "Super CHIP-8", "XO-CHIP"
+};
+
+c8_state_t *c8_newState(c8_emu_mode_t mode) {
+	if (mode > 2 || mode < 0)
+		return NULL;
 	c8_state_t *state = (c8_state_t *) malloc(sizeof(c8_state_t));
 	if (state == NULL)
 		return state;
+	state->mode = mode;
 	c8_cpuBoot(state);
 	return state;
 }
@@ -36,12 +34,20 @@ void c8_seedRandom(c8_state_t *state, UWord seed) {
 
 void c8_cpuBoot(c8_state_t *state) {
 	state->exited = false;
+	state->hires = false;
+	state->vblankWait = false;
+	state->awaitingKey = -1;
+	state->cycleDiff = 0.0;
+	state->timerDiff = 0.0;
+	state->vblankDiff = 0.0;
+	state->callStackPos = 0;
+	state->delayTimer = 0;
+	state->soundTimer = 0;
 	c8_clearMemory(state);
 	c8_clearScreen(state);
 	c8_clearInput(state);
 	c8_resetRegisters(state);
 	c8_seedRandom(state, (UWord) random());
-	state->awaitingKey = -1;
 }
 
 c8_status_t c8_cpuStep(c8_state_t *state, int *outCycles) {
@@ -49,18 +55,20 @@ c8_status_t c8_cpuStep(c8_state_t *state, int *outCycles) {
 		return C8_EXITED;
 	if (state->awaitingKey != -1)
 		return C8_AWAITING_KEY;
+
 	UWord opcode = c8_readMemoryWord(state, state->regPC);
 	struct c8_instruction inst = { 0 };
-	c8_instructionLookup(&inst, opcode);
-	if (inst.execute == NULL)
-		return C8_UNKNOWN_OP;
+	c8_status_t status = c8_instructionLookup(state->mode, &inst, opcode);
+	if (status != C8_OK)
+		return status;
 	int cycles = inst.cycles;
 	state->regPC += 2;
 	int extraCycles = inst.execute(state, opcode);
+
 	if (outCycles != NULL)
 		*outCycles = cycles + extraCycles;
 	if (state->regPC >= C8_ADDRESSABLE_MEM)
-		state->regPC &= (C8_ADDRESSABLE_MEM - 1);
+		state->regPC %= C8_ADDRESSABLE_MEM;
 	return C8_OK;
 }
 
@@ -77,15 +85,15 @@ c8_status_t c8_emulate(c8_state_t *state, double dt, int *outCycles) {
 	state->soundTimer -= timerDiff > state->soundTimer
 		? state->soundTimer : timerDiff;
 	state->timerDiff -= timerDiff;
-#ifdef COSMAC
-	state->vblankDiff += dt * C8_VBLANK_SPEED;
-	while (state->vblankDiff > 1) {
-		state->vblankWait = false;
-		state->vblankDiff -= 1.0;
+	if (state->mode == C8_CHIP_8) {
+		state->vblankDiff += dt * C8_VBLANK_SPEED;
+		while (state->vblankDiff > 1.0) {
+			state->vblankWait = false;
+			state->vblankDiff -= 1.0;
+		}
+		if (state->vblankWait)
+			return C8_OK;
 	}
-	if (state->vblankWait)
-		return C8_OK;
-#endif
 	if (state->awaitingKey != -1)
 		return C8_AWAITING_KEY;
 	state->cycleDiff += dt * C8_CLOCK_SPEED;
@@ -100,10 +108,8 @@ c8_status_t c8_emulate(c8_state_t *state, double dt, int *outCycles) {
 		}
 		state->cycleDiff -= cyclesTaken;
 		totalCycles += cyclesTaken;
-#ifdef COSMAC
 		if (state->vblankWait)
 			break;
-#endif
 	}
 	if (outCycles != NULL)
 		*outCycles = totalCycles;
@@ -121,15 +127,15 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *b
 	state->soundTimer -= timerDiff > state->soundTimer
 		? state->soundTimer : timerDiff;
 	state->timerDiff -= timerDiff;
-#ifdef COSMAC
-	state->vblankDiff += dt * C8_VBLANK_SPEED;
-	while (state->vblankDiff > 1) {
-		state->vblankWait = false;
-		state->vblankDiff -= 1.0;
+	if (state->mode == C8_CHIP_8) {
+		state->vblankDiff += dt * C8_VBLANK_SPEED;
+		while (state->vblankDiff > 1) {
+			state->vblankWait = false;
+			state->vblankDiff -= 1.0;
+		}
+		if (state->vblankWait)
+			return C8_OK;
 	}
-	if (state->vblankWait)
-		return C8_OK;
-#endif
 	if (state->awaitingKey != -1)
 		return C8_AWAITING_KEY;
 	state->cycleDiff += dt * C8_CLOCK_SPEED;
@@ -150,10 +156,8 @@ c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *outCycles, int *b
 				return C8_BREAK;
 			}
 		}
-#ifdef COSMAC
 		if (state->vblankWait)
 			break;
-#endif
 	}
 	if (outCycles != NULL)
 		*outCycles = totalCycles;
@@ -184,7 +188,11 @@ size_t c8_callStack(const c8_state_t *state, UWord *frames, size_t frameSize) {
 
 const char *c8_disassemble(const c8_state_t *state, UWord pos) {
 	UWord word = c8_readMemoryWord(state, pos);
-	struct c8_instruction inst;
-	c8_instructionLookup(&inst, word);
+	struct c8_instruction inst = { 0 };
+	c8_instructionLookup(state->mode, &inst, word);
 	return inst.disassembly;
+}
+
+c8_emu_mode_t c8_mode(const c8_state_t *state) {
+	return state->mode;
 }

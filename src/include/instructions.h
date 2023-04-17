@@ -15,26 +15,29 @@ INSTRUCTION(addToI);
 INSTRUCTION(setRegister);
 INSTRUCTION(setIRegister);
 INSTRUCTION(regDump);
+INSTRUCTION(schipRegDump);
 INSTRUCTION(regLoad);
+INSTRUCTION(schipRegLoad);
 INSTRUCTION(moveRegister);
 INSTRUCTION(spriteAddrI);
-#if defined(SCHIP) || defined(XO_CHIP)
 INSTRUCTION(persistentDump);
 INSTRUCTION(persistentLoad);
 // INSTRUCTION(spriteAddrBig);
-#endif
-#ifdef XO_CHIP
 // INSTRUCTION(regDumpY);
 // INSTRUCTION(regLoadY);
 // INSTRUCTION(setIWord);
-#endif
 
 // bitwise.c
 INSTRUCTION(orRegister);
+INSTRUCTION(cosmacOrRegister);
 INSTRUCTION(andRegister);
+INSTRUCTION(cosmacAndRegister);
 INSTRUCTION(xorRegister);
+INSTRUCTION(cosmacXorRegister);
 INSTRUCTION(shiftRegisterRight);
+INSTRUCTION(schipShiftRegisterRight);
 INSTRUCTION(shiftRegisterLeft);
+INSTRUCTION(schipShiftRegisterLeft);
 
 // branches.c
 INSTRUCTION(ifEquals);
@@ -45,25 +48,24 @@ INSTRUCTION(keyEquals);
 INSTRUCTION(keyNotEquals);
 
 // display.c
-INSTRUCTION(draw);
+INSTRUCTION(cosmacDraw);
+INSTRUCTION(schipDraw);
+INSTRUCTION(xoDraw);
 INSTRUCTION(displayClear);
-#if defined(SCHIP) || defined(XO_CHIP)
 INSTRUCTION(lowres);
 INSTRUCTION(highres);
 // INSTRUCTION(scrollDown);
 // INSTRUCTION(scrollRight);
 // INSTRUCTION(scrollLeft);
-#endif
-#ifdef XO_CHIP
 // INSTRUCTION(scrollUp);
 // INSTRUCTION(setDrawingPlane);
-#endif
 
 // jumps.c
 INSTRUCTION(gotoInst);
 INSTRUCTION(callInst);
 INSTRUCTION(returnInst);
 INSTRUCTION(jumpV0);
+INSTRUCTION(schipJumpV0);
 INSTRUCTION(jumpOffset);
 
 // misc.c
@@ -71,13 +73,9 @@ INSTRUCTION(bcd);
 INSTRUCTION(randRegister);
 INSTRUCTION(nop);
 INSTRUCTION(getKey);
-#if defined(SCHIP) || defined(XO_CHIP)
 INSTRUCTION(exitInst);
-#endif
-#ifdef XO_CHIP
 // INSTRUCTION(loadAudioBuffer);
 // INSTRUCTION(setAudioHertz);
-#endif
 
 // timers.c
 INSTRUCTION(getDelay);

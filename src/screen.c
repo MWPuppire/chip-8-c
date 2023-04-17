@@ -12,7 +12,6 @@ static inline UByte c8_writeToScreenLowres(c8_state_t *state, UByte x, UByte y) 
 }
 
 UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
-#if defined(SCHIP) || defined(XO_CHIP)
 	if (!state->hires) {
 		UByte toggle = 0;
 		x <<= 1;
@@ -29,11 +28,6 @@ UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
 			return 0;
 		return c8_writeToScreenLowres(state, x, y);
 	}
-#else
-	if (x >= C8_SCREEN_WIDTH || y >= C8_SCREEN_HEIGHT)
-		return 0;
-	return c8_writeToScreenLowres(state, x, y);
-#endif
 }
 
 UByte c8_readFromScreen(const c8_state_t *state, UByte x, UByte y) {
