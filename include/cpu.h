@@ -6,7 +6,7 @@ extern const char *C8_MODE_NAMES[3];
 
 c8_state_t *c8_newState(c8_emu_mode_t mode);
 void c8_seedRandom(c8_state_t *state, UWord seed);
-void c8_cpuBoot(c8_state_t *state);
+void c8_cpuBoot(c8_state_t *state, c8_emu_mode_t mode);
 c8_status_t c8_cpuStep(c8_state_t *state, int *cyclesTaken);
 c8_status_t c8_emulate(c8_state_t *state, double dt, int *cyclesTaken);
 c8_status_t c8_emulateUntil(c8_state_t *state, double dt, int *cyclesTaken, int *breakpoints, int n);

@@ -462,7 +462,7 @@ void executeCommand(const char *cmd) {
 		break;
 	}
 	case REBOOT: {
-		c8_cpuBoot(emu);
+		c8_cpuBoot(emu, c8_mode(emu));
 		state.hasRom = false;
 		break;
 	}

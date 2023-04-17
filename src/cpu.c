@@ -18,13 +18,10 @@ const char *C8_MODE_NAMES[3] = {
 };
 
 c8_state_t *c8_newState(c8_emu_mode_t mode) {
-	if (mode > 2 || mode < 0)
-		return NULL;
 	c8_state_t *state = (c8_state_t *) malloc(sizeof(c8_state_t));
 	if (state == NULL)
 		return state;
-	state->mode = mode;
-	c8_cpuBoot(state);
+	c8_cpuBoot(state, mode);
 	return state;
 }
 
@@ -32,7 +29,8 @@ void c8_seedRandom(c8_state_t *state, UWord seed) {
 	state->randomState = seed;
 }
 
-void c8_cpuBoot(c8_state_t *state) {
+void c8_cpuBoot(c8_state_t *state, c8_emu_mode_t mode) {
+	state->mode = mode;
 	state->exited = false;
 	state->hires = false;
 	state->vblankWait = false;
