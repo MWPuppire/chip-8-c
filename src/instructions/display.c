@@ -12,7 +12,7 @@ int c8_cosmacDraw(c8_state_t *state, UWord word) {
 	UByte y = c8_readRegister(state, yReg) % (C8_SCREEN_HEIGHT / 2);
 	UByte n = (UByte) word & 0xF;
 	UWord idx = state->regI;
-	UByte flag = 0;
+	bool flag = false;
 	for (int i = 0; i < n; i++) {
 		UByte tempX = x;
 		UByte byte = c8_readMemoryByte(state, idx);
@@ -26,7 +26,7 @@ int c8_cosmacDraw(c8_state_t *state, UWord word) {
 		y += 1;
 		idx += 1;
 	}
-	state->registers[0xF] = flag;
+	state->registers[0xF] = (UByte) flag;
 	return 0;
 }
 
@@ -43,7 +43,7 @@ int c8_schipDraw(c8_state_t *state, UWord word) {
 	}
 	UByte n = (UByte) word & 0xF;
 	UWord idx = state->regI;
-	UByte flag = 0;
+	bool flag = false;
 	for (int i = 0; i < n; i++) {
 		UByte tempX = x;
 		UByte byte = c8_readMemoryByte(state, idx);
@@ -57,7 +57,7 @@ int c8_schipDraw(c8_state_t *state, UWord word) {
 		y += 1;
 		idx += 1;
 	}
-	state->registers[0xF] = flag;
+	state->registers[0xF] = (UByte) flag;
 	return 0;
 }
 
@@ -76,7 +76,7 @@ int c8_xoDraw(c8_state_t *state, UWord word) {
 	UByte y = c8_readRegister(state, yReg) % screenHeight;
 	UByte n = (UByte) word & 0xF;
 	UWord idx = state->regI;
-	UByte flag = 0;
+	bool flag = false;
 	for (int i = 0; i < n; i++) {
 		UByte tempX = x;
 		UByte byte = c8_readMemoryByte(state, idx);
@@ -92,7 +92,7 @@ int c8_xoDraw(c8_state_t *state, UWord word) {
 		y += 1;
 		idx += 1;
 	}
-	state->registers[0xF] = flag;
+	state->registers[0xF] = (UByte) flag;
 	return 0;
 }
 

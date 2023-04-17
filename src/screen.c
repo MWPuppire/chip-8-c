@@ -3,17 +3,17 @@
 #include <shared-internal.h>
 #include <screen.h>
 
-static inline UByte c8_writeToScreenLowres(c8_state_t *state, UByte x, UByte y) {
+static inline bool c8_writeToScreenLowres(c8_state_t *state, UByte x, UByte y) {
 	size_t pos = (size_t) x / 8 + (size_t) y * (C8_SCREEN_WIDTH / 8);
 	UByte byte = 1 << (x & 7);
-	UByte toggle = (state->screen[pos] & byte) > 0;
+	bool toggle = (state->screen[pos] & byte) > 0;
 	state->screen[pos] ^= byte;
 	return toggle;
 }
 
-UByte c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
+bool c8_writeToScreen(c8_state_t *state, UByte x, UByte y) {
 	if (!state->hires) {
-		UByte toggle = 0;
+		bool toggle = 0;
 		x <<= 1;
 		y <<= 1;
 		if (x >= C8_SCREEN_WIDTH || y >= C8_SCREEN_HEIGHT)

@@ -806,6 +806,21 @@ int main(int argc, char *argv[]) {
 					exitCode = 1;
 					break;
 #endif
+				} else if (status == C8_OP_NOT_DEFINED) {
+					UWord pc = c8_readPC(emu);
+					c8_emu_mode_t mode = c8_mode(emu);
+					fprintf(stderr, "Operation not defined for mode %s\n", C8_MODE_NAMES[mode]);
+					const char *disassembly = c8_disassemble(emu, pc);
+					if (disassembly != NULL)
+						printf("%s\n", disassembly);
+#ifdef DEBUG_REPL
+					state.running = PAUSED;
+					SDL_UnlockMutex(state.mutex);
+					continue;
+#else
+					exitCode = 1;
+					break;
+#endif
 				} else if (status == C8_EXITED) {
 					printf("ROM exited via `exit` instruction");
 				}
