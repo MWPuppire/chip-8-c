@@ -1,3 +1,5 @@
+Abandoned in favor of [Rust version](https://github.com/MWPuppire/chip-8).
+
 # CHIP-8
 
 A CHIP-8 emulator. Structured such that the frontend (as in, the input and display portions of the program) are separate from the emulation backend, so the CHIP-8 emulator could be used as a library not tied to any specific framework.
